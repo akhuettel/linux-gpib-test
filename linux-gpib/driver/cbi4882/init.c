@@ -87,7 +87,10 @@ int board_attach(void)
 	pcmcia_initialized = 1;
 #endif
 #if defined(CBI_PCI)
-	bd_PCIInfo();
+	if(bd_PCIInfo())
+	{
+		return -1;
+	};
 #endif
 	// allocate ioports
 	if(check_region(ibbase, cbi_iosize) < 0)

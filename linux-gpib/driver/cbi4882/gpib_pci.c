@@ -17,7 +17,7 @@ unsigned int pci_config_reg = 0x0000;
 
 struct pci_dev *ib_pci_dev = NULL;
 
-IBLCL void bd_PCIInfo(void)
+IBLCL int bd_PCIInfo(void)
 {
 	DBGin("bd_PCIInfo");
 
@@ -25,15 +25,15 @@ IBLCL void bd_PCIInfo(void)
 	if(ib_pci_dev == NULL)
 	{
 		printk("GPIB: no PCI board found\n ");
-		return;
+		return -1;
 	}
 
 	if(pci_enable_device(ib_pci_dev))
 	{
 		printk("error enabling pci device\n");
-		return;
+		return -1;
 	}
-
+	
 	pci_config_reg = ib_pci_dev->resource[0].start & PCI_BASE_ADDRESS_IO_MASK;
 	ibbase = ib_pci_dev->resource[1].start & PCI_BASE_ADDRESS_IO_MASK;
 	ibirq = ib_pci_dev->irq;
@@ -43,6 +43,7 @@ IBLCL void bd_PCIInfo(void)
 	printk("GPIB: PCI base=0x%lx config=0x%x irq=0x%x \n",ibbase,pci_config_reg, ibirq );
 
 	DBGout();
+	return 0;
 }
 
 /* enable or disable PCI interrupt on AMCC PCI controller */
