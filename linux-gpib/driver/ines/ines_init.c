@@ -91,14 +91,14 @@ ines_pci_id pci_ids[] =
 static const int num_pci_chips = sizeof(pci_ids) / sizeof(pci_ids[0]);
 
 // wrappers for interface functions
-ssize_t ines_read(gpib_board_t *board, uint8_t *buffer, size_t length, int *end)
+ssize_t ines_read(gpib_board_t *board, uint8_t *buffer, size_t length, int *end, int *nbytes)
 {
 	ines_private_t *priv = board->private_data;
 	nec7210_private_t *nec_priv = &priv->nec7210_priv;
 	ssize_t retval;
 	int dummy;
 
-	retval = nec7210_read(board, &priv->nec7210_priv, buffer, length, end);
+	retval = nec7210_read(board, &priv->nec7210_priv, buffer, length, end, nbytes);
 	if( retval < 0 )
 	{
 		write_byte( nec_priv, INES_RFD_HLD_IMMEDIATE, AUXMR );
@@ -224,7 +224,6 @@ gpib_interface_t ines_pci_interface =
 	serial_poll_status: ines_serial_poll_status,
 	t1_delay: ines_t1_delay,
 	return_to_local: ines_return_to_local,
-	provider_module: &__this_module,
 };
 
 gpib_interface_t ines_pci_accel_interface =
@@ -253,7 +252,6 @@ gpib_interface_t ines_pci_accel_interface =
 	serial_poll_status: ines_serial_poll_status,
 	t1_delay: ines_t1_delay,
 	return_to_local: ines_return_to_local,
-	provider_module: &__this_module,
 };
 
 int ines_allocate_private(gpib_board_t *board)
@@ -414,7 +412,12 @@ int ines_common_pci_attach( gpib_board_t *board )
 	}
 
 	nec7210_board_reset( nec_priv, board );
-
+	if(ines_priv->pci_chip_type == PCI_CHIP_QUANCOM)
+	{
+		/* change interrupt polarity */
+		nec_priv->auxb_bits |= HR_INV;
+		ines_outb(ines_priv, nec_priv->auxb_bits, AUXMR);
+	}
 	isr_flags |= SA_SHIRQ;
 	if(request_irq(ines_priv->pci_device->irq, ines_interrupt, isr_flags, "pci-gpib", board))
 	{
@@ -527,12 +530,12 @@ static int ines_init_module( void )
 
 	EXPORT_NO_SYMBOLS;
 
-	gpib_register_driver(&ines_pci_interface);
-	gpib_register_driver(&ines_pci_accel_interface);
+	gpib_register_driver(&ines_pci_interface, &__this_module);
+	gpib_register_driver(&ines_pci_accel_interface, &__this_module);
 
 #if defined(GPIB_CONFIG_PCMCIA)
-	gpib_register_driver(&ines_pcmcia_interface);
-	gpib_register_driver(&ines_pcmcia_accel_interface);
+	gpib_register_driver(&ines_pcmcia_interface, &__this_module);
+	gpib_register_driver(&ines_pcmcia_accel_interface, &__this_module);
 	err += ines_pcmcia_init_module();
 #endif
 	if(err)

@@ -58,7 +58,7 @@ if [[ ! -f "$LINUX_SRCDIR/.config" ]]; then
 	in the kernel source directory.])
 fi
 if [[ ! -f "$LINUX_SRCDIR/.hdepend" ]];then
-	AC_MSG_ERROR([You need to run 'make dep' on the kernel source before continuing.])
+	AC_MSG_WARN([No .hdepend file found in your kernel directory.  You may need to run 'make dep' on the kernel source.])
 fi
 AC_MSG_RESULT([ok])
 dnl get compile flags for modules from linux kernel source tree

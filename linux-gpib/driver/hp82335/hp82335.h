@@ -22,7 +22,7 @@
 #include "gpibP.h"
 
 
-// struct which defines private_data for tnt4882 devices
+// struct which defines private_data for board
 typedef struct
 {
 	tms9914_private_t tms9914_priv;
@@ -34,10 +34,8 @@ typedef struct
 extern gpib_interface_t hp82335_interface;
 
 // interface functions
-ssize_t hp82335_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
- *end );
-ssize_t hp82335_write( gpib_board_t *board, uint8_t *buffer, size_t length, int
- send_eoi );
+ssize_t hp82335_read( gpib_board_t *board, uint8_t *buffer, size_t length, int *end, int *nbytes);
+ssize_t hp82335_write( gpib_board_t *board, uint8_t *buffer, size_t length, int send_eoi );
 ssize_t hp82335_command( gpib_board_t *board, uint8_t *buffer, size_t length );
 int hp82335_take_control( gpib_board_t *board, int synchronous );
 int hp82335_go_to_standby( gpib_board_t *board );
@@ -63,9 +61,6 @@ void hp82335_interrupt(int irq, void *arg, struct pt_regs *registerp);
 // utility functions
 int hp82335_allocate_private(gpib_board_t *board);
 void hp82335_free_private(gpib_board_t *board);
-
-// register offset for tms9914 compatible registers
-static const int atgpib_reg_offset = 2;
 
 // size of io memory region used
 static const int hp82335_iomem_size = 0x4000;

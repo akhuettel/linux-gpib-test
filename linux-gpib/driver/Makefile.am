@@ -7,9 +7,9 @@
 #   the Free Software Foundation; either version 2 of the License, or
 #   (at your option) any later version.
 
-GPIB_MODULE_SUBDIRS :=cb7210 cec hp82335 ines nec7210 pc2 sys tms9914 tnt4882
+GPIB_MODULE_SUBDIRS :=agilent_82350b cb7210 cec hp82335 ines nec7210 pc2 sys tms9914 tnt4882
 GPIB_ABS_MODULE_SUBDIRS :=$(patsubst %, @abs_srcdir@/%/, $(GPIB_MODULE_SUBDIRS))
-GPIB_MODULES :=cb7210/cb7210.o cec/cec_gpib.o hp82335/hp82335.o \
+GPIB_MODULES :=agilent_82350b/agilent_82350b.o cb7210/cb7210.o cec/cec_gpib.o hp82335/hp82335.o \
 	ines/ines_gpib.o pc2/pc2_gpib.o tms9914/tms9914.o tnt4882/tnt4882.o \
 	nec7210/nec7210.o tms9914/tms9914.o sys/gpib_common.o
 
@@ -25,7 +25,7 @@ all-local:
 		SUBDIRS="$(GPIB_ABS_MODULE_SUBDIRS)"
 
 clean-local:
-	find $(srcdir) \( -name '*.[oas]' -o -name core -o -name '.*.flags' \) -type f \
+	find $(srcdir) \( -name '*.[oas]' -o -name '*.ko' -o -name core -o -name '.*.cmd' \) -type f \
 		-exec $(RM) {} \;
 
 install-data-hook: device-file-check /etc/gpib.conf
@@ -39,7 +39,7 @@ install-data-hook: device-file-check /etc/gpib.conf
 	for i in $(shell seq 0 15); \
 	do \
 		mknod --mode u=rw,g=rw,o= /dev/gpib$${i} c $(IBMAJOR) $${i} || exit 1; \
-		chown root.gpib /dev/gpib$${i}; \
+		chown root:gpib /dev/gpib$${i}; \
 	done
 
 .PHONY : device-file-check
@@ -62,7 +62,7 @@ device-file-check: /dev/gpib0
 /etc/gpib.conf:
 	$(INSTALL_DATA) -D $(top_srcdir)/util/templates/gpib.conf /etc/gpib.conf
 
-#make sure compiled files don't make it into distribution tarballs
+#make sure compiled files, etc don't make it into distribution tarballs
 dist-hook:
-	find $(distdir) \( -name '*.[oas]' -o -name core -o -name '.*.flags' \) -type f \
+	find $(distdir) \( -name '*.[oas]' -o -name '*.ko' -o -name core -o -name '.*.cmd' \) -type f \
 		-exec $(RM) {} \;

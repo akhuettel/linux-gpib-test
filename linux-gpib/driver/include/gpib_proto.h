@@ -15,7 +15,12 @@ void osRemoveTimer( gpib_board_t *board );
 void osSendEOI( void );
 void osSendEOI( void );
 void init_gpib_board( gpib_board_t *board );
-unsigned int usec_to_jiffies( unsigned int usec );
+static inline unsigned long usec_to_jiffies(unsigned int usec)
+{
+	unsigned long usec_per_jiffy = 1000000 / HZ;
+
+	return 1 + ( usec + usec_per_jiffy - 1) / usec_per_jiffy;
+};
 int serial_poll_all( gpib_board_t *board, unsigned int usec_timeout );
 void init_gpib_descriptor( gpib_descriptor_t *desc );
 int dvrsp(gpib_board_t *board, unsigned int pad, int sad,
@@ -29,7 +34,7 @@ int ibgts(gpib_board_t *board);
 int ibonline( gpib_board_t *board );
 int iboffline( gpib_board_t *board );
 int iblines( const gpib_board_t *board, short *lines );
-ssize_t ibrd(gpib_board_t *board, uint8_t *buf, size_t length, int *end_flag);
+ssize_t ibrd(gpib_board_t *board, uint8_t *buf, size_t length, int *end_flag,int *nbytes);
 int ibrpp( gpib_board_t *board, uint8_t *buf );
 int ibrsv(gpib_board_t *board, uint8_t poll_status);
 void ibrsc( gpib_board_t *board, int request_control );

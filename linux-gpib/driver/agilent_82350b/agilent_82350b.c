@@ -61,17 +61,17 @@ int agilent_82350b_go_to_standby( gpib_board_t *board )
 void agilent_82350b_request_system_control( gpib_board_t *board, int request_control )
 {
 	agilent_82350b_private_t *a_priv = board->private_data;
-	
+
 	if(request_control)
 	{
 		a_priv->card_mode_bits |= CM_SYSTEM_CONTROLLER_BIT;
-		writeb(IC_SYSTEM_CONTROLLER_BIT, a_priv->gpib_base + INTERNAL_CONFIG_REG); 
+		writeb(IC_SYSTEM_CONTROLLER_BIT, a_priv->gpib_base + INTERNAL_CONFIG_REG);
 	}else
 	{
 		a_priv->card_mode_bits &= ~CM_SYSTEM_CONTROLLER_BIT;
-		writeb(0, a_priv->gpib_base + INTERNAL_CONFIG_REG); 
+		writeb(0, a_priv->gpib_base + INTERNAL_CONFIG_REG);
 	}
-	writeb(a_priv->card_mode_bits, a_priv->gpib_base + CARD_MODE_REG); 
+	writeb(a_priv->card_mode_bits, a_priv->gpib_base + CARD_MODE_REG);
 	tms9914_request_system_control(board, &a_priv->tms9914_priv, request_control);
 }
 void agilent_82350b_interface_clear( gpib_board_t *board, int assert )
@@ -144,7 +144,7 @@ unsigned int agilent_82350b_t1_delay( gpib_board_t *board, unsigned int nanosec 
 	agilent_82350b_private_t *a_priv = board->private_data;
 	static const int nanosec_per_clock = 30;
 	unsigned value;
-	
+
 	tms9914_t1_delay(board, &a_priv->tms9914_priv, nanosec);
 
 	value = (nanosec + nanosec_per_clock - 1) / nanosec_per_clock;
@@ -256,13 +256,13 @@ int agilent_82350b_attach( gpib_board_t *board )
 		printk("error enabling pci device\n");
 		return -EIO;
 	}
-	
-	writeb(0, a_priv->gpib_base + SRAM_ACCESS_CONTROL_REG); 
+
+	writeb(0, a_priv->gpib_base + SRAM_ACCESS_CONTROL_REG);
 	a_priv->card_mode_bits = ENABLE_PCI_IRQ_BIT;
-	writeb(a_priv->card_mode_bits, a_priv->gpib_base + CARD_MODE_REG); 
-	writeb(ENABLE_TMS9914_INTERRUPTS_BIT, a_priv->gpib_base + INTERRUPT_ENABLE_REG); 
+	writeb(a_priv->card_mode_bits, a_priv->gpib_base + CARD_MODE_REG);
+	writeb(ENABLE_TMS9914_INTERRUPTS_BIT, a_priv->gpib_base + INTERRUPT_ENABLE_REG);
 	board->t1_nano_sec = agilent_82350b_t1_delay(board, 2000);
-	
+
 	tms9914_board_reset(tms_priv);
 
 	tms9914_online( board, tms_priv );
@@ -313,19 +313,18 @@ module_exit( agilent_82350b_exit_module );
  * GPIB interrupt service routines
  */
 
-irqreturn_t agilent_82350b_interrupt(int irq, void *arg, struct pt_regs *registerp)
+void agilent_82350b_interrupt(int irq, void *arg, struct pt_regs *registerp)
 {
 	int status1, status2;
 	gpib_board_t *board = arg;
 	agilent_82350b_private_t *priv = board->private_data;
 	unsigned long flags;
-	irqreturn_t retval;
-	
+
 	spin_lock_irqsave( &board->spinlock, flags );
 	status1 = read_byte( &priv->tms9914_priv, ISR0);
 	status2 = read_byte( &priv->tms9914_priv, ISR1);
-	retval = tms9914_interrupt_have_status(board, &priv->tms9914_priv, status1, status2);
+	tms9914_interrupt_have_status(board, &priv->tms9914_priv, status1, status2);
 	spin_unlock_irqrestore( &board->spinlock, flags );
-	return retval;
+	return;
 }
 

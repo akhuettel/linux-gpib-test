@@ -40,9 +40,9 @@ int nec7210_parallel_poll(gpib_board_t *board, nec7210_private_t *priv, uint8_t 
 {
 	int ret;
 
+	clear_bit(COMMAND_READY_BN, &priv->state);
 	// execute parallel poll
 	write_byte(priv, AUX_EPP, AUXMR);
-
 	// wait for result
 	ret = wait_event_interruptible(board->wait, test_bit(COMMAND_READY_BN, &priv->state));
 	if(ret)
@@ -154,8 +154,8 @@ unsigned int nec7210_update_status(gpib_board_t *board, nec7210_private_t *priv,
 	unsigned int retval;
 
 	spin_lock_irqsave( &board->spinlock, flags );
-	retval = update_status_nolock( board, priv );
 	board->status &= ~clear_mask;
+	retval = update_status_nolock( board, priv );
 	spin_unlock_irqrestore( &board->spinlock, flags );
 
 	return retval;

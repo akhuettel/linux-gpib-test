@@ -33,10 +33,10 @@ int cec_pci_attach(gpib_board_t *board);
 void cec_pci_detach(gpib_board_t *board);
 
 // wrappers for interface functions
-ssize_t cec_read(gpib_board_t *board, uint8_t *buffer, size_t length, int *end)
+ssize_t cec_read(gpib_board_t *board, uint8_t *buffer, size_t length, int *end, int *nbytes)
 {
 	cec_private_t *priv = board->private_data;
-	return nec7210_read(board, &priv->nec7210_priv, buffer, length, end);
+	return nec7210_read(board, &priv->nec7210_priv, buffer, length, end, nbytes);
 }
 ssize_t cec_write(gpib_board_t *board, uint8_t *buffer, size_t length, int send_eoi)
 {
@@ -160,7 +160,6 @@ gpib_interface_t cec_pci_interface =
 	serial_poll_status: cec_serial_poll_status,
 	t1_delay: cec_t1_delay,
 	return_to_local: cec_return_to_local,
-	provider_module: &__this_module,
 };
 
 int cec_allocate_private(gpib_board_t *board)
@@ -307,8 +306,7 @@ void cec_pci_detach(gpib_board_t *board)
 int cec_init_module(void)
 {
 	EXPORT_NO_SYMBOLS;
-
-	gpib_register_driver(&cec_pci_interface);
+	gpib_register_driver(&cec_pci_interface, &__this_module);
 
 	return 0;
 }

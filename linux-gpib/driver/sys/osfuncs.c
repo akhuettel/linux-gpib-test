@@ -134,12 +134,12 @@ int ibopen(struct inode *inode, struct file *filep)
 		retval = request_module( module_string );
 		if( retval )
 		{
-			printk( "gpib: request module returned %i\n", retval );
+			printk( "gpib: (debug) request module returned %i\n", retval );
 		}
 	}
+	if(board->interface)
+		__MOD_INC_USE_COUNT(board->provider_module);
 	board->open_count++;
-	if( board->interface )
-		__MOD_INC_USE_COUNT( board->interface->provider_module );
 
 	return 0;
 }
@@ -172,8 +172,8 @@ int ibclose(struct inode *inode, struct file *filep)
 	}
 
 	board->open_count--;
-	if( board->interface )
-		__MOD_DEC_USE_COUNT( board->interface->provider_module );
+	if(board->interface)
+		__MOD_DEC_USE_COUNT(board->provider_module);
 
 	if( board->exclusive )
 		board->exclusive = 0;
@@ -370,15 +370,19 @@ static int board_type_ioctl(gpib_board_t *board, unsigned long arg)
 
 	for(list_ptr = registered_drivers.next; list_ptr != &registered_drivers; list_ptr = list_ptr->next)
 	{
-		gpib_interface_t *interface;
+		gpib_interface_list_t *entry;
 
-		interface = list_entry(list_ptr, gpib_interface_t, list);
-		if(strcmp(interface->name, cmd.name) == 0)
+		entry = list_entry(list_ptr, gpib_interface_list_t, list);
+		if(strcmp(entry->interface->name, cmd.name) == 0)
 		{
-			if( board->interface )
-				__MOD_DEC_USE_COUNT( board->interface->provider_module );
-			board->interface = interface;
-			__MOD_INC_USE_COUNT( board->interface->provider_module );
+			if(board->interface)
+			{
+				__MOD_DEC_USE_COUNT(board->provider_module);
+				board->interface = NULL;
+			}
+			__MOD_INC_USE_COUNT(entry->module);
+			board->interface = entry->interface;
+			board->provider_module = entry->module;
 			return 0;
 		}
 	}
@@ -394,8 +398,9 @@ static int read_ioctl( gpib_file_private_t *file_priv, gpib_board_t *board,
 	unsigned long remain;
 	int end_flag = 0;
 	int retval;
-	ssize_t ret;
+	ssize_t read_ret = 0;
 	gpib_descriptor_t *desc;
+	int nbytes;
 
 	retval = copy_from_user(&read_cmd, (void*) arg, sizeof(read_cmd));
 	if (retval)
@@ -416,18 +421,14 @@ static int read_ioctl( gpib_file_private_t *file_priv, gpib_board_t *board,
 	remain = read_cmd.count;
 	while(remain > 0 && end_flag == 0)
 	{
-		ret = ibrd( board, board->buffer, (board->buffer_length < remain) ? board->buffer_length :
-			remain, &end_flag);
-		if(ret < 0)
-		{
-			desc->io_in_progress = 0;
-			wake_up_interruptible( &board->wait );
-			return ret;
-		}
-		if( ret == 0 ) break;
-		copy_to_user(userbuf, board->buffer, ret);
-		remain -= ret;
-		userbuf += ret;
+		nbytes = 0;
+		read_ret = ibrd(board, board->buffer, (board->buffer_length < remain) ? board->buffer_length :
+			remain, &end_flag, &nbytes);
+		if(nbytes == 0) break;
+		copy_to_user(userbuf, board->buffer, nbytes);
+		remain -= nbytes;
+		userbuf += nbytes;
+		if(read_ret < 0) break;
 	}
 	read_cmd.count -= remain;
 	read_cmd.end = end_flag;
@@ -437,7 +438,7 @@ static int read_ioctl( gpib_file_private_t *file_priv, gpib_board_t *board,
 	wake_up_interruptible( &board->wait );
 	if(retval) return -EFAULT;
 
-	return 0;
+	return read_ret;
 }
 
 static int command_ioctl( gpib_file_private_t *file_priv,

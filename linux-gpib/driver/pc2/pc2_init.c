@@ -39,10 +39,10 @@ void pc2a_detach(gpib_board_t *board);
 void pc2_2a_detach(gpib_board_t *board);
 
 // wrappers for interface functions
-ssize_t pc2_read(gpib_board_t *board, uint8_t *buffer, size_t length, int *end)
+ssize_t pc2_read(gpib_board_t *board, uint8_t *buffer, size_t length, int *end, int *nbytes)
 {
 	pc2_private_t *priv = board->private_data;
-	return nec7210_read(board, &priv->nec7210_priv, buffer, length, end);
+	return nec7210_read(board, &priv->nec7210_priv, buffer, length, end, nbytes);
 }
 ssize_t pc2_write(gpib_board_t *board, uint8_t *buffer, size_t length, int send_eoi)
 {
@@ -166,7 +166,6 @@ gpib_interface_t pc2_interface =
 	serial_poll_status:	pc2_serial_poll_status,
 	t1_delay: pc2_t1_delay,
 	return_to_local: pc2_return_to_local,
-	provider_module: &__this_module,
 };
 
 gpib_interface_t pc2a_interface =
@@ -195,7 +194,6 @@ gpib_interface_t pc2a_interface =
 	serial_poll_status:	pc2_serial_poll_status,
 	t1_delay: pc2_t1_delay,
 	return_to_local: pc2_return_to_local,
-	provider_module: &__this_module,
 };
 
 gpib_interface_t pc2a_cb7210_interface =
@@ -216,7 +214,7 @@ gpib_interface_t pc2a_cb7210_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
-	line_status:	NULL,
+	line_status:	NULL, //XXX
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
 	secondary_address:	pc2_secondary_address,
@@ -224,7 +222,6 @@ gpib_interface_t pc2a_cb7210_interface =
 	serial_poll_status:	pc2_serial_poll_status,
 	t1_delay: pc2_t1_delay,
 	return_to_local: pc2_return_to_local,
-	provider_module: &__this_module,
 };
 
 gpib_interface_t pc2_2a_interface =
@@ -253,7 +250,6 @@ gpib_interface_t pc2_2a_interface =
 	serial_poll_status:	pc2_serial_poll_status,
 	t1_delay: pc2_t1_delay,
 	return_to_local: pc2_return_to_local,
-	provider_module: &__this_module,
 };
 
 static int allocate_private(gpib_board_t *board)
@@ -544,11 +540,10 @@ void pc2_2a_detach( gpib_board_t *board )
 static int pc2_init_module( void )
 {
 	EXPORT_NO_SYMBOLS;
-
-	gpib_register_driver(&pc2_interface);
-	gpib_register_driver(&pc2a_interface);
-	gpib_register_driver(&pc2a_cb7210_interface);
-	gpib_register_driver(&pc2_2a_interface);
+	gpib_register_driver(&pc2_interface, &__this_module);
+	gpib_register_driver(&pc2a_interface, &__this_module);
+	gpib_register_driver(&pc2a_cb7210_interface, &__this_module);
+	gpib_register_driver(&pc2_2a_interface, &__this_module);
 
 	return 0;
 }

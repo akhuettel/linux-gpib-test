@@ -12,6 +12,8 @@ SUBDIRS = . gpib_config
 lib_LTLIBRARIES = libgpib.la
 
 noinst_HEADERS = ibConf.h ib_internal.h
+headersdir = $(includedir)/gpib
+headers_HEADERS = ib.h
 
 BUILT_SOURCES = ibConfLex.c ibConfYacc.c ibConfYacc.h
 MAINTAINERCLEANFILES = ibConfLex.c ibConfYacc.c ibConfYacc.h
@@ -36,8 +38,5 @@ ibConfLex.c: $(srcdir)/ibConfLex.l $(srcdir)/ibConfYacc.h
 
 ibConfYacc.c + ibConfYacc.h: $(srcdir)/ibConfYacc.y
 	$(YACC) -d -p gpib_yy -o ibConfYacc.c ibConfYacc.y
-
-install-data-local:
-	$(INSTALL_HEADER) -D ib.h $(includedir)/gpib/ib.h
 
 

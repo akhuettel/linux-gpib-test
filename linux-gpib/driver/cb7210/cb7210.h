@@ -25,6 +25,7 @@
 
 #include <linux/config.h>
 #include <linux/delay.h>
+#include <linux/interrupt.h>
 
 enum
 {
@@ -39,6 +40,7 @@ typedef struct
 	struct pci_dev *pci_device;
 	// base address of amccs5933 pci chip
 	unsigned long amcc_iobase;
+	unsigned long fifo_iobase;
 	unsigned int irq;
 	volatile uint8_t hs_mode_bits;
 	volatile unsigned out_fifo_half_empty : 1;
@@ -58,9 +60,9 @@ void cb7210_internal_interrupt( gpib_board_t *board );
 
 // interface functions
 ssize_t cb7210_read( gpib_board_t *board, uint8_t *buffer, size_t length,
-	int *end );
+	int *end, int *nbytes);
 ssize_t cb7210_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length,
-	int *end );
+	int *end, int *nbytes);
 ssize_t cb7210_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	int send_eoi );
 ssize_t cb7210_accel_write( gpib_board_t *board, uint8_t *buffer, size_t length,

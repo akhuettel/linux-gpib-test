@@ -235,7 +235,7 @@ static dev_link_t *ni_gpib_attach(void)
     client_reg.event_handler = &ni_gpib_event;
     client_reg.Version = 0x0210;
     client_reg.event_callback_args.client_data = link;
-    ret = CardServices(RegisterClient, &link->handle, &client_reg);
+    ret = pcmcia_register_client(&link->handle, &client_reg);
     if (ret != CS_SUCCESS) {
 	cs_error(link->handle, RegisterClient, ret);
 	ni_gpib_detach(link);
@@ -283,7 +283,7 @@ static void ni_gpib_detach(dev_link_t *link)
 
     /* Break the link with Card Services */
     if (link->handle)
-	CardServices(DeregisterClient, link->handle);
+	pcmcia_deregister_client(link->handle);
     
     /* Unlink device structure, and free it */
     *linkp = link->next;
@@ -300,15 +300,8 @@ static void ni_gpib_detach(dev_link_t *link)
 
 ======================================================================*/
 
-#define CS_CHECK(fn, args...) \
-while ((last_ret=CardServices(last_fn=(fn),args))!=0) goto cs_failed
-
-#define CFG_CHECK(fn, args...) \
-if (CardServices(fn, args) != 0) goto next_entry
-
 static void ni_gpib_config(dev_link_t *link)
 {
-    client_handle_t handle = link->handle;
     local_info_t *dev = link->priv;
     tuple_t tuple;
     cisparse_t parse;
@@ -330,9 +323,24 @@ static void ni_gpib_config(dev_link_t *link)
     tuple.TupleData = buf;
     tuple.TupleDataMax = sizeof(buf);
     tuple.TupleOffset = 0;
-    CS_CHECK(GetFirstTuple, handle, &tuple);
-    CS_CHECK(GetTupleData, handle, &tuple);
-    CS_CHECK(ParseTuple, handle, &tuple, &parse);
+	last_ret = pcmcia_get_first_tuple(link->handle, &tuple);
+	if(last_ret != CS_SUCCESS)
+	{
+		last_fn = GetFirstTuple;
+		goto cs_failed;
+	}
+	last_ret = pcmcia_get_tuple_data(link->handle, &tuple);
+	if(last_ret != CS_SUCCESS)
+	{
+		last_fn = GetTupleData;
+		goto cs_failed;
+	}
+	last_ret = pcmcia_parse_tuple(link->handle, &tuple, &parse);
+	if(last_ret != CS_SUCCESS)
+	{
+		last_fn = ParseTuple;
+		goto cs_failed;
+	}
     link->conf.ConfigBase = parse.config.base;
     link->conf.Present = parse.config.rmask[0];
 
@@ -340,7 +348,12 @@ static void ni_gpib_config(dev_link_t *link)
     link->state |= DEV_CONFIG;
 
     /* Look up the current Vcc */
-    CS_CHECK(GetConfigurationInfo, handle, &conf);
+	last_ret = pcmcia_get_configuration_info(link->handle, &conf);
+	if(last_ret != CS_SUCCESS)
+	{
+		last_fn = GetConfigurationInfo;
+		goto cs_failed;
+	}
     link->conf.Vcc = conf.Vcc;
 
     /*
@@ -356,28 +369,44 @@ static void ni_gpib_config(dev_link_t *link)
       will only use the CIS to fill in implementation-defined details.
     */
     tuple.DesiredTuple = CISTPL_CFTABLE_ENTRY;
-    CS_CHECK(GetFirstTuple, handle, &tuple);
-    while (1) {
+	last_ret = pcmcia_get_first_tuple(link->handle, &tuple);
+	if(last_ret != CS_SUCCESS)
+	{
+		last_fn = GetFirstTuple;
+		goto cs_failed;
+	}
+    while (1)
+	{
 	cistpl_cftable_entry_t *cfg = &(parse.cftable_entry);
-	CFG_CHECK(GetTupleData, handle, &tuple);
-	CFG_CHECK(ParseTuple, handle, &tuple, &parse);
-
+		last_ret = pcmcia_get_tuple_data(link->handle, &tuple);
+		if(last_ret != CS_SUCCESS)
+		{
+			goto next_entry;
+		}
+		last_ret = pcmcia_parse_tuple(link->handle, &tuple, &parse);
+		if(last_ret != CS_SUCCESS)
+		{
+			goto next_entry;
+		}
 	if (cfg->flags & CISTPL_CFTABLE_DEFAULT) dflt = *cfg;
 	if (cfg->index == 0) goto next_entry;
 	link->conf.ConfigIndex = cfg->index;
 
 	/* Does this card need audio output? */
-	if (cfg->flags & CISTPL_CFTABLE_AUDIO) {
+		if (cfg->flags & CISTPL_CFTABLE_AUDIO)
+		{
 	    link->conf.Attributes |= CONF_ENABLE_SPKR;
 	    link->conf.Status = CCSR_AUDIO_ENA;
 	}
 
 	/* Use power settings for Vcc and Vpp if present */
 	/*  Note that the CIS values need to be rescaled */
-	if (cfg->vcc.present & (1<<CISTPL_POWER_VNOM)) {
+		if (cfg->vcc.present & (1<<CISTPL_POWER_VNOM))
+		{
 	    if (conf.Vcc != cfg->vcc.param[CISTPL_POWER_VNOM]/10000)
 		goto next_entry;
-	} else if (dflt.vcc.present & (1<<CISTPL_POWER_VNOM)) {
+		}else if (dflt.vcc.present & (1<<CISTPL_POWER_VNOM))
+		{
 	    if (conf.Vcc != dflt.vcc.param[CISTPL_POWER_VNOM]/10000)
 		goto next_entry;
 	}
@@ -395,7 +424,8 @@ static void ni_gpib_config(dev_link_t *link)
 
 	/* IO window settings */
 	link->io.NumPorts1 = link->io.NumPorts2 = 0;
-	if ((cfg->io.nwin > 0) || (dflt.io.nwin > 0)) {
+		if ((cfg->io.nwin > 0) || (dflt.io.nwin > 0))
+		{
 	    cistpl_io_t *io = (cfg->io.nwin) ? &cfg->io : &dflt.io;
 	    link->io.Attributes1 = IO_DATA_PATH_WIDTH_AUTO;
 	    if (!(io->flags & CISTPL_IO_8BIT))
@@ -405,13 +435,18 @@ static void ni_gpib_config(dev_link_t *link)
 	    link->io.IOAddrLines = io->flags & CISTPL_IO_LINES_MASK;
 	    link->io.BasePort1 = io->win[0].base;
 	    link->io.NumPorts1 = io->win[0].len;
-	    if (io->nwin > 1) {
+			if (io->nwin > 1)
+			{
 		link->io.Attributes2 = link->io.Attributes1;
 		link->io.BasePort2 = io->win[1].base;
 		link->io.NumPorts2 = io->win[1].len;
 	    }
 	    /* This reserves IO space but doesn't actually enable it */
-	    CFG_CHECK(RequestIO, link->handle, &link->io);
+			last_ret = pcmcia_request_io(link->handle, &link->io);
+			if(last_ret != CS_SUCCESS)
+			{
+				goto next_entry;
+			}
 	}
 
 	/*
@@ -436,17 +471,22 @@ static void ni_gpib_config(dev_link_t *link)
 		req.Size = 0x1000;
 	    req.AccessSpeed = 0;
 	    link->win = (window_handle_t)link->handle;
-	    CFG_CHECK(RequestWindow, &link->win, &req);
+			if(pcmcia_request_window(&link->handle, &req, &link->win) != CS_SUCCESS) goto next_entry;
 	    map.Page = 0; map.CardOffset = mem->win[0].card_addr;
-	    CFG_CHECK(MapMemPage, link->win, &map);
+			if(pcmcia_map_mem_page(link->win, &map) != CS_SUCCESS) goto next_entry;
 	}
 	/* If we got this far, we're cool! */
 	break;
 
     next_entry:
 	if (link->io.NumPorts1)
-	    CardServices(ReleaseIO, link->handle, &link->io);
-	CS_CHECK(GetNextTuple, handle, &tuple);
+			pcmcia_release_io(link->handle, &link->io);
+		last_ret = pcmcia_get_next_tuple(link->handle, &tuple);
+		if(last_ret != CS_SUCCESS)
+		{
+			last_fn = GetNextTuple;
+			goto cs_failed;
+		}
     }
 
     /*
@@ -455,14 +495,24 @@ static void ni_gpib_config(dev_link_t *link)
        irq structure is initialized.
     */
     if (link->conf.Attributes & CONF_ENABLE_IRQ)
-	CS_CHECK(RequestIRQ, link->handle, &link->irq);
+	last_ret = pcmcia_request_irq(link->handle, &link->irq);
+	if(last_ret != CS_SUCCESS)
+	{
+		last_fn = RequestIRQ;
+		goto cs_failed;
+	}
 
     /*
        This actually configures the PCMCIA socket -- setting up
        the I/O windows and the interrupt mapping, and putting the
        card and host interface into "Memory and IO" mode.
     */
-    CS_CHECK(RequestConfiguration, link->handle, &link->conf);
+	last_ret = pcmcia_request_configuration(link->handle, &link->conf);
+	if(last_ret != CS_SUCCESS)
+	{
+		last_fn = RequestConfiguration;
+		goto cs_failed;
+	}
 
     /*
       We can release the IO port allocations here, if some other
@@ -548,12 +598,12 @@ static void ni_gpib_release(u_long arg)
 
     /* Don't bother checking to see if these succeed or not */
     if (link->win)
-	CardServices(ReleaseWindow, link->win);
-    CardServices(ReleaseConfiguration, link->handle);
+	pcmcia_release_window(link->win);
+    pcmcia_release_configuration(link->handle);
     if (link->io.NumPorts1)
-	CardServices(ReleaseIO, link->handle, &link->io);
+	pcmcia_release_io(link->handle, &link->io);
     if (link->irq.AssignedIRQ)
-	CardServices(ReleaseIRQ, link->handle, &link->irq);
+	pcmcia_release_irq(link->handle, &link->irq);
     link->state &= ~DEV_CONFIG;
 
     if (link->state & DEV_STALE_LINK)
@@ -601,14 +651,14 @@ static int ni_gpib_event(event_t event, int priority,
 	/* Mark the device as stopped, to block IO until later */
 	dev->stop = 1;
 	if (link->state & DEV_CONFIG)
-	    CardServices(ReleaseConfiguration, link->handle);
+			pcmcia_release_configuration(link->handle);
 	break;
     case CS_EVENT_PM_RESUME:
 	link->state &= ~DEV_SUSPEND;
 	/* Fall through... */
     case CS_EVENT_CARD_RESET:
 	if (link->state & DEV_CONFIG)
-	    CardServices(RequestConfiguration, link->handle, &link->conf);
+			pcmcia_request_configuration(link->handle, &link->conf);
 	dev->stop = 0;
 	/*
 	  In a normal driver, additional code may go here to restore
@@ -624,8 +674,9 @@ static int ni_gpib_event(event_t event, int priority,
 int __init init_ni_gpib_cs(void)
 {
     servinfo_t serv;
+
     DEBUG(0, "%s\n", version);
-    CardServices(GetCardServicesInfo, &serv);
+	pcmcia_get_card_services_info(&serv);
     if (serv.Revision != CS_RELEASE_CODE) {
 	printk( "ni_gpib_cs: Card Services release "
 	       "does not match!  Revision = %i, CS_RELEASE_CODE = %i\n", serv.Revision, CS_RELEASE_CODE );
@@ -640,7 +691,6 @@ void __exit exit_ni_gpib_cs(void)
     DEBUG(0, "ni_gpib_cs: unloading\n");
     unregister_pccard_driver(&dev_info);
     while (dev_list != NULL) {
-	del_timer(&dev_list->release);
 	if (dev_list->state & DEV_CONFIG)
 	    ni_gpib_release((u_long)dev_list);
 	ni_gpib_detach(dev_list);
@@ -655,8 +705,8 @@ gpib_interface_t ni_pcmcia_interface =
 	name: "ni_pcmcia",
 	attach: ni_pcmcia_attach,
 	detach: ni_pcmcia_detach,
-	read: tnt4882_read,
-	write: tnt4882_write,
+	read: tnt4882_accel_read,
+	write: tnt4882_accel_write,
 	command: tnt4882_command,
 	take_control: tnt4882_take_control,
 	go_to_standby: tnt4882_go_to_standby,
@@ -676,7 +726,6 @@ gpib_interface_t ni_pcmcia_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-	provider_module: &__this_module,
 };
 
 gpib_interface_t ni_pcmcia_accel_interface =
@@ -705,7 +754,6 @@ gpib_interface_t ni_pcmcia_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-	provider_module: &__this_module,
 };
 
 int ni_pcmcia_attach(gpib_board_t *board)

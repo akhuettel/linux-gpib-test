@@ -77,7 +77,7 @@ void agilent_82350b_serial_poll_response( gpib_board_t *board, uint8_t status );
 void agilent_82350b_return_to_local( gpib_board_t *board );
 
 // interrupt service routines
-irqreturn_t agilent_82350b_interrupt(int irq, void *arg, struct pt_regs *registerp);
+void agilent_82350b_interrupt(int irq, void *arg, struct pt_regs *registerp);
 
 // utility functions
 int agilent_82350b_allocate_private(gpib_board_t *board);

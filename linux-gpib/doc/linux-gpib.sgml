@@ -23,7 +23,7 @@
 </author>
 
 <copyright>
-<year>2003</year>
+<year>2003, 2004, 2005</year>
 <holder>Frank Mori Hess</holder>
 </copyright>
 </articleinfo>
@@ -1107,13 +1107,16 @@ volatile int ibsta;
 	<row>
 	<entry>IbaSC</entry>
 	<entry>0xa</entry>
-	<entry>Nonzero if board is system controller.</entry>
+	<entry>Nonzero if board is system controller.
+	See <link LINKEND="reference-function-ibrsc">ibrsc()</link>.
+	</entry>
 	<entry>board</entry>
 	</row>
 	<row>
 	<entry>IbaSRE</entry>
 	<entry>0xb</entry>
-	<entry>Nonzero if board is asserting REN line.  See
+	<entry>Nonzero if board autmatically asserts REN line when
+	it becomes the system controller.  See
 	<link LINKEND="reference-function-ibsre">ibsre()</link>.
 	</entry>
 	<entry>board</entry>
@@ -3668,11 +3671,12 @@ volatile int ibsta;
 	<para>
 	DevClear() causes the interface board specified by <parameter>board_desc</parameter>
 	to send the clear command simultaneously to all the GPIB addresses specified by the
-	<parameter>addressList</parameter> array.  The results of the serial polls are stored into <parameter>resultList</parameter>.
+	<parameter>addressList</parameter> array.  If <parameter>addressList</parameter> is
+	empty or NULL, then the clear command is sent to all devices on the bus.
 	If you only wish to clear a single device,
 	<link LINKEND="reference-function-devclear">DevClear()</link>
 	or <link LINKEND="reference-function-ibclr">ibclr()</link> may
-	be more convenient.
+	be slightly more convenient.
 	</para>
 </refsect1>
 </refentry>

@@ -63,7 +63,7 @@ static ssize_t pio_write(gpib_board_t *board, nec7210_private_t *priv, uint8_t *
 	clear_bit(BUS_ERROR_BN, &priv->state);
 	while(count < length)
 	{
-		if(current->need_resched)
+		if(need_resched())
 			schedule();
 
 		retval = pio_write_wait(board, priv, 0, 0, priv->type == NEC7210);
@@ -91,7 +91,7 @@ static ssize_t pio_write(gpib_board_t *board, nec7210_private_t *priv, uint8_t *
 
 	return length;
 }
-
+#if 0
 static ssize_t __dma_write(gpib_board_t *board, nec7210_private_t *priv, dma_addr_t address, size_t length)
 {
 	unsigned long flags, dma_irq_flags;
@@ -168,7 +168,7 @@ static ssize_t dma_write(gpib_board_t *board, nec7210_private_t *priv, uint8_t *
 
 	return length - remain;
 }
-
+#endif
 ssize_t nec7210_write(gpib_board_t *board, nec7210_private_t *priv, uint8_t *buffer, size_t length, int send_eoi)
 {
 	size_t count = 0;

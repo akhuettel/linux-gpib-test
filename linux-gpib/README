@@ -17,14 +17,17 @@ the package was left unmaintained for a couple years so
 I (Frank Hess) decided to pick it up and port it to the
 2.4 Linux kernel.
 
+See the INSTALL file for instructions on building and
+installing this software package.
+
 Send comments, questions and suggestions to
 to the linux-gpib mailing list
 linux-gpib-general@lists.sourceforge.net
 
 *************** COPYRIGHT NOTICE ***********************
 
-If You want to use the Package for Commercial Purpose
-Please read the COPYRIGHTS File very Carefuly.
+If you want to distribute software which makes use of
+this package, please read the COPYING file carefully.
 
 ********************************************************
 

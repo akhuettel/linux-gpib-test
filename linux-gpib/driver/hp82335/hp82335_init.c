@@ -36,10 +36,10 @@ int hp82335_attach( gpib_board_t *board );
 void hp82335_detach( gpib_board_t *board );
 
 // wrappers for interface functions
-ssize_t hp82335_read( gpib_board_t *board, uint8_t *buffer, size_t length, int *end )
+ssize_t hp82335_read( gpib_board_t *board, uint8_t *buffer, size_t length, int *end, int *nbytes)
 {
 	hp82335_private_t *priv = board->private_data;
-	return tms9914_read( board, &priv->tms9914_priv, buffer, length, end );
+	return tms9914_read( board, &priv->tms9914_priv, buffer, length, end, nbytes);
 }
 ssize_t hp82335_write( gpib_board_t *board, uint8_t *buffer, size_t length, int send_eoi )
 {
@@ -167,7 +167,6 @@ gpib_interface_t hp82335_interface =
 	serial_poll_response: hp82335_serial_poll_response,
 	t1_delay: hp82335_t1_delay,
 	return_to_local: hp82335_return_to_local,
-	provider_module: &__this_module,
 };
 
 int hp82335_allocate_private( gpib_board_t *board )
@@ -260,7 +259,7 @@ int hp82335_attach( gpib_board_t *board )
 	printk("hp82335: base address 0x%x remapped to 0x%lx\n", hp_priv->raw_iobase,
 		tms_priv->iobase );
 
-	if( request_irq( board->ibirq, hp82335_interrupt, SA_SHIRQ, "hp82335", board ) )
+	if(request_irq( board->ibirq, hp82335_interrupt, SA_SHIRQ, "hp82335", board))
 	{
 		printk( "hp82335: can't request IRQ %d\n", board->ibirq );
 		return -1;
@@ -308,9 +307,7 @@ void hp82335_detach(gpib_board_t *board)
 static int hp82335_init_module( void )
 {
 	EXPORT_NO_SYMBOLS;
-
-	gpib_register_driver(&hp82335_interface);
-
+	gpib_register_driver(&hp82335_interface, &__this_module);
 	return 0;
 }
 

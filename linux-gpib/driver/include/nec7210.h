@@ -21,6 +21,7 @@
 #include <linux/types.h>
 #include <linux/spinlock.h>
 #include <linux/string.h>
+#include <linux/interrupt.h>
 
 #include "gpib_types.h"
 
@@ -48,7 +49,7 @@ struct nec7210_private_struct
 	volatile uint8_t auxa_bits;	// bits written to auxilliary register A
 	volatile uint8_t auxb_bits;	// bits written to auxilliary register B
 	// used to keep track of board's state, bit definitions given below
-	volatile int state;
+	volatile unsigned long state;
 	/* lock for chips that extend the nec7210 registers by paging in alternate regs */
 	spinlock_t register_page_lock;
 	// wrappers for outb, inb, readb, or writeb
@@ -90,7 +91,7 @@ enum
 
 // interface functions
 ssize_t nec7210_read(gpib_board_t *board, nec7210_private_t *priv,
-	uint8_t *buffer, size_t length, int *end);
+	uint8_t *buffer, size_t length, int *end, int *nbytes);
 ssize_t nec7210_write(gpib_board_t *board, nec7210_private_t *priv,
 	uint8_t *buffer, size_t length, int send_eoi);
 ssize_t nec7210_command(gpib_board_t *board, nec7210_private_t *priv,

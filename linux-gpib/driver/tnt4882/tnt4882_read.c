@@ -92,7 +92,7 @@ static void tnt4882_release_holdoff(gpib_board_t *board, tnt4882_private_t *tnt_
 	}
 }
 
-ssize_t tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int *end )
+ssize_t tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int *end,int *nbytes)
 {
 	size_t count = 0;
 	ssize_t retval = 0;
@@ -102,6 +102,8 @@ ssize_t tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length,
 	int32_t hw_count;
 	unsigned long flags;
 
+	// FIXME: really, DEV_CLEAR_BN should happen elsewhere to prevent race
+	clear_bit(DEV_CLEAR_BN, &nec_priv->state);
 	imr1_bits = nec_priv->reg_bits[ IMR1 ];
 	imr2_bits = nec_priv->reg_bits[ IMR2 ];
 	nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ENDIE | HR_DECIE );
@@ -169,7 +171,7 @@ ssize_t tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length,
 		tnt_writeb( tnt_priv, tnt_priv->imr3_bits, IMR3 );
 		spin_unlock_irqrestore( &board->spinlock, flags );
 
-		if( current->need_resched )
+		if(need_resched())
 			schedule();
 	}
 	// wait for last byte
@@ -205,6 +207,7 @@ ssize_t tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length,
 			buffer[ count++ ] = tnt_readb( tnt_priv, FIFOB );
 		}
 	}
+	if(count < length)
 	tnt_writeb( tnt_priv, STOP, CMDR );
 	udelay(1);
 
@@ -226,10 +229,10 @@ ssize_t tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length,
 		// force immediate holdoff
 		write_byte( nec_priv, AUX_HLDI, AUXMR );
 		set_bit( RFD_HOLDOFF_BN, &nec_priv->state );
-		return retval;
 	}
+	*nbytes = count;
 
-	return count;
+	return retval;
 }
 
 
