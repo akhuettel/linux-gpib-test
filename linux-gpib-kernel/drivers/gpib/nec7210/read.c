@@ -32,6 +32,11 @@ static int pio_read( gpib_board_t *board, nec7210_private_t *priv, uint8_t *buff
 	{
 		if(wait_event_interruptible(board->wait,
 			test_bit(READ_READY_BN, &priv->state) ||
+#if (GPIB_CONFIG_DEVICE==1)
+			test_bit(TACS_NUM, &board->status) ||
+			test_bit(ATN_NUM, &board->status) ||
+			test_bit(ADSC_BN, &priv->state) ||
+#endif
 			test_bit(DEV_CLEAR_BN, &priv->state) ||
 			test_bit(TIMO_NUM, &board->status)))
 		{
@@ -54,6 +59,26 @@ static int pio_read( gpib_board_t *board, nec7210_private_t *priv, uint8_t *buff
 			if( *end )
 				break;
 		}
+#if (GPIB_CONFIG_DEVICE==1)
+		if( test_bit( TACS_NUM, &board->status ) )
+		{
+			GPIB_DPRINTK("addressed as talker\n");
+			retval = -EINTR;
+			break;
+		}
+		if( test_bit( ATN_NUM, &board->status ) )
+		{
+			GPIB_DPRINTK("ATN asserted\n");
+			retval = -EINTR;
+			break;
+		}
+		if( test_bit( ADSC_BN, &priv->state ) )
+		{
+			GPIB_DPRINTK("address change detected (unlisten)\n");
+			retval = -EINTR;
+			break;
+		}
+#endif
 		if( test_bit( TIMO_NUM, &board->status ) )
 		{
 			GPIB_DPRINTK("interrupted by timeout\n");
@@ -169,6 +194,11 @@ int nec7210_read(gpib_board_t *board, nec7210_private_t *priv, uint8_t *buffer,
 
 	smp_mb__before_atomic();
 	clear_bit( DEV_CLEAR_BN, &priv->state ); // XXX wrong
+#if (GPIB_CONFIG_DEVICE==1)
+	clear_bit( TACS_NUM, &board->status );
+	clear_bit( ATN_NUM, &board->status );
+	clear_bit( ADSC_BN, &priv->state );
+#endif
 	smp_mb__after_atomic();
 
 	nec7210_release_rfd_holdoff( board, priv );

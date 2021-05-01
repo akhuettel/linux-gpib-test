@@ -71,6 +71,9 @@ void nec7210_board_online( nec7210_private_t *priv, const gpib_board_t *board )
 
 	// enable interrupts
 	priv->reg_bits[ IMR1 ] = HR_ERRIE | HR_DECIE | HR_ENDIE |
+#if (GPIB_CONFIG_DEVICE==1)
+			HR_APTIE |
+#endif
 		HR_DETIE | HR_CPTIE | HR_DOIE | HR_DIIE;
 	priv->reg_bits[ IMR2 ] = IMR2_ENABLE_INTR_MASK;
 	write_byte( priv, priv->reg_bits[ IMR1 ], IMR1);

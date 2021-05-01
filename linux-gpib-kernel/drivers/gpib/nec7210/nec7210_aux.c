@@ -157,6 +157,86 @@ void nec7210_return_to_local( const gpib_board_t *board, nec7210_private_t *priv
 	write_byte( priv, AUX_RTL, AUXMR );
 }
 
+#if (GPIB_CONFIG_DEVICE==1)
+void nec7210_local_parallel_poll_mode( gpib_board_t *board, nec7210_private_t *priv, int set_local )
+{
+	// dummy implementation (not needed, intended for TNT4882 & friends only)
+}
+
+/*
+ * releases data acknowledge (DAC) for pending GPIB (secondary) command in
+ * DAC hold-off state with either accepting (do_accept = 1) or rejecting
+ * (do_accept = 0) the command.
+ */
+void nec7210_release_dac_holdoff( gpib_board_t *board, nec7210_private_t *priv, int do_accept )
+{
+	clear_bit(APT_NUM, &board->status);
+	if (do_accept) {
+		write_byte( priv, AUX_VAL, AUXMR );
+	}
+	else {
+		write_byte( priv, AUX_NVAL, AUXMR );
+	}
+}
+
+/*
+ * sets the address mode and (if appropriate) secondary address (sad).
+ * Address mode implementation may be hardware specific, 7210 normally
+ * provides mode 0 (ton/toff), mode 1 (normal dual addressing), mode 2
+ * (extended single addressing) and mode 3 (extended dual addressing).
+ *
+ * Note that dual addressing is a special feature of the 7210 and compatibles.
+ */
+void nec7210_set_address_mode( gpib_board_t *board, nec7210_private_t *priv,
+		int address_mode, int sad )
+{
+	switch(address_mode) {
+	case 0:	// ton/lon
+		priv->reg_bits[ ADMR ] &= ~HR_ADM0;
+		priv->reg_bits[ ADMR ] &= ~HR_ADM1;
+		write_byte( priv, priv->reg_bits[ ADMR ], ADMR );
+		break;
+	case 1:	// normal dual addressing (7210 only)
+		board->sad = sad;
+		write_byte(priv, HR_ARS | sad, ADR);
+		priv->reg_bits[ ADMR ] |= HR_ADM0;
+		priv->reg_bits[ ADMR ] &= ~HR_ADM1;
+		write_byte( priv, priv->reg_bits[ ADMR ], ADMR );
+		break;
+	case 2:	// extended single addressing
+		board->sad = sad;
+		write_byte(priv, HR_ARS | sad, ADR);
+		priv->reg_bits[ ADMR ] &= ~HR_ADM0;
+		priv->reg_bits[ ADMR ] |= HR_ADM1;
+		write_byte( priv, priv->reg_bits[ ADMR ], ADMR );
+		break;
+	case 3:	// extended dual addressing (7210 only)
+		board->sad = sad;
+		write_byte(priv, HR_ARS | sad, ADR);
+		priv->reg_bits[ ADMR ] |= HR_ADM0;
+		priv->reg_bits[ ADMR ] |= HR_ADM1;
+		write_byte( priv, priv->reg_bits[ ADMR ], ADMR );
+		break;
+	default:
+		printk("nec7210: invalid address mode (mode=%d)\n", address_mode);
+	}
+}
+
+/*
+ * returns the current secondary address and whether the minor or major
+ * address has been addressed (meaningful for dual addressing and
+ * extended dual addressing only).
+ */
+void nec7210_get_address_state( gpib_board_t *board, nec7210_private_t *priv,
+		unsigned int *secondary, int *is_minor )
+{
+	*secondary = priv->command & 0x1f;
+	*is_minor = priv->is_minor_address;
+}
+#endif
+
+
+
 EXPORT_SYMBOL( nec7210_t1_delay );
 EXPORT_SYMBOL( nec7210_request_system_control );
 EXPORT_SYMBOL( nec7210_take_control );
@@ -165,3 +245,9 @@ EXPORT_SYMBOL( nec7210_interface_clear );
 EXPORT_SYMBOL( nec7210_remote_enable );
 EXPORT_SYMBOL( nec7210_release_rfd_holdoff );
 EXPORT_SYMBOL( nec7210_return_to_local );
+#if (GPIB_CONFIG_DEVICE==1)
+EXPORT_SYMBOL( nec7210_local_parallel_poll_mode );
+EXPORT_SYMBOL( nec7210_release_dac_holdoff );
+EXPORT_SYMBOL( nec7210_set_address_mode );
+EXPORT_SYMBOL( nec7210_get_address_state );
+#endif

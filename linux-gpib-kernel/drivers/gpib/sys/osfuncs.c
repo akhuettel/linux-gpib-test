@@ -68,6 +68,12 @@ static int select_device_path_ioctl( gpib_board_config_t *config, unsigned long 
 static int event_ioctl( gpib_board_t *board, unsigned long arg );
 static int request_system_control_ioctl( gpib_board_t *board, unsigned long arg );
 static int t1_delay_ioctl( gpib_board_t *board, unsigned long arg );
+#if (GPIB_CONFIG_DEVICE==1)
+static int release_dac_holdoff_ioctl( gpib_board_t *board, unsigned long arg );
+static int set_address_mode_ioctl( gpib_board_t *board, unsigned long arg );
+static int get_address_state_ioctl( gpib_board_t *board, unsigned long arg );
+#endif
+
 
 static int cleanup_open_devices( gpib_file_private_t *file_priv, gpib_board_t *board );
 
@@ -251,7 +257,6 @@ long ibioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 	}
 	if( board->interface == NULL )
 	{
-		printk("gpib: no gpib board configured on /dev/gpib%i\n", minor);
 		retval = -ENODEV;
 		goto done;
 	}
@@ -453,6 +458,20 @@ long ibioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 			mutex_unlock(&board->big_gpib_mutex);
 			return write_ioctl( file_priv, board, arg );
 			break;
+#if (GPIB_CONFIG_DEVICE==1)
+		case IBRELEASE_DAC_HOLDOFF:
+			retval = release_dac_holdoff_ioctl( board, arg );
+			goto done;
+			break;
+		case IBSET_ADDRESS_MODE:
+			retval = set_address_mode_ioctl( board, arg );
+			goto done;
+			break;
+		case IBGET_ADDRESS_STATE:
+			retval = get_address_state_ioctl( board, arg );
+			goto done;
+			break;
+#endif
 		default:
 			retval = -ENOTTY;
 			goto done;
@@ -1591,3 +1610,62 @@ static int t1_delay_ioctl( gpib_board_t *board, unsigned long arg )
 	return 0;
 }
 
+#if (GPIB_CONFIG_DEVICE==1)
+static int release_dac_holdoff_ioctl( gpib_board_t *board, unsigned long arg )
+{
+	int do_accept;
+	int retval;
+
+	if( board->interface->release_dac_holdoff == NULL )
+	{
+		printk("gpib: release holdoff not implemented in driver!\n" );
+		return -EIO;
+	}
+
+	retval = copy_from_user( &do_accept, ( void * ) arg, sizeof( do_accept ) );
+	if( retval ) return -EFAULT;
+
+	board->interface->release_dac_holdoff( board, do_accept);
+
+	return 0;
+}
+
+static int set_address_mode_ioctl( gpib_board_t *board, unsigned long arg )
+{
+	set_address_mode_ioctl_t cmd;
+	int retval;
+
+	if( board->interface->set_address_mode == NULL )
+	{
+		printk("gpib: set address mode not implemented in driver!\n" );
+		return -EIO;
+	}
+
+	retval = copy_from_user( &cmd, ( void * ) arg, sizeof( cmd ) );
+	if( retval ) return -EFAULT;
+
+	board->interface->set_address_mode( board, cmd.address_mode, cmd.sad);
+
+	return 0;
+}
+
+static int get_address_state_ioctl( gpib_board_t *board, unsigned long arg )
+{
+	get_address_state_ioctl_t cmd;
+	int retval;
+
+	if( board->interface->get_address_state == NULL )
+	{
+		printk("gpib: get address state not implemented in driver!\n" );
+		return -EIO;
+	}
+
+	board->interface->get_address_state( board, &cmd.secondary, &cmd.is_minor);
+
+	retval = copy_to_user( ( void * ) arg, &cmd, sizeof( cmd ) );
+	if( retval )
+		return -EFAULT;
+
+	return 0;
+}
+#endif

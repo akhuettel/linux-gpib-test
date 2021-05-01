@@ -15,7 +15,6 @@
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
-
 #include "board.h"
 #include <linux/string.h>
 #include <asm/dma.h>
@@ -30,6 +29,10 @@ static int pio_write_wait(gpib_board_t *board, nec7210_private_t *priv,
 		(wake_on_bus_error && test_bit(BUS_ERROR_BN, &priv->state)) ||
 		(wake_on_lacs && test_bit(LACS_NUM, &board->status)) ||
 		(wake_on_atn && test_bit(ATN_NUM, &board->status)) ||
+#if (GPIB_CONFIG_DEVICE==1)
+   		test_bit(ADSC_BN, &priv->state) ||
+		test_bit(APT_NUM, &board->status) ||
+#endif
 		test_bit(TIMO_NUM, &board->status)))
 	{
 		GPIB_DPRINTK( "gpib write interrupted\n" );
@@ -45,6 +48,28 @@ static int pio_write_wait(gpib_board_t *board, nec7210_private_t *priv,
 		GPIB_DPRINTK("nec7210: write interrupted by clear\n");
 		return -EINTR;
 	}
+#if (GPIB_CONFIG_DEVICE==1)
+	if(test_bit(ADSC_BN, &priv->state))
+	{
+		GPIB_DPRINTK("nec7210: address change detected (untalk)\n");
+		return -EINTR;
+	}
+	if(wake_on_lacs && test_bit(LACS_NUM, &board->status))
+	{
+		GPIB_DPRINTK("nec7210: addressed as listener\n");
+		return -EINTR;
+	}
+	if(wake_on_atn && test_bit(ATN_NUM, &board->status))
+	{
+		GPIB_DPRINTK("nec7210: ATN asserted\n");
+		return -EINTR;
+	}
+	if(test_bit(APT_NUM, &board->status))
+	{
+		GPIB_DPRINTK("nec7210: secondary detected\n");
+		return -EINTR;
+	}
+#endif
 	if(wake_on_bus_error && test_and_clear_bit(BUS_ERROR_BN, &priv->state))
 	{
 		GPIB_DPRINTK("nec7210: bus error on write\n");
@@ -54,7 +79,11 @@ static int pio_write_wait(gpib_board_t *board, nec7210_private_t *priv,
 }
 
 static int pio_write(gpib_board_t *board, nec7210_private_t *priv,
+#if (GPIB_CONFIG_DEVICE==1)
+	uint8_t *buffer, size_t length, size_t *bytes_written, int send_eoi)
+#else
 	uint8_t *buffer, size_t length, size_t *bytes_written)
+#endif
 {
 	size_t last_count = 0;
 	ssize_t retval = 0;
@@ -83,7 +112,14 @@ static int pio_write(gpib_board_t *board, nec7210_private_t *priv,
 			bus_error_count++;
 			if(bus_error_count > max_bus_errors) return retval;
 			else continue;
+#if (GPIB_CONFIG_DEVICE==1)
+		}else if( retval < 0 ) goto done;
+
+		if (send_eoi && (*bytes_written == (length - 1)))
+			write_byte(priv, AUX_SEOI, AUXMR);
+#else
 		}else if( retval < 0 ) return retval;
+#endif
 
 		spin_lock_irqsave(&board->spinlock, flags);
 		clear_bit(BUS_ERROR_BN, &priv->state);
@@ -93,6 +129,13 @@ static int pio_write(gpib_board_t *board, nec7210_private_t *priv,
 		spin_unlock_irqrestore(&board->spinlock, flags);
 	}
 	retval = pio_write_wait(board, priv, 1, 1, priv->type == NEC7210);
+#if (GPIB_CONFIG_DEVICE==1)
+done:
+	if (retval < 0) {
+		if ((retval == -EIO) || test_and_clear_bit(BUS_ERROR_BN, &priv->state))
+			*bytes_written = last_count;
+	}
+#endif
 	return retval;
 }
 #if 0
@@ -180,12 +223,33 @@ int nec7210_write(gpib_board_t *board, nec7210_private_t *priv, uint8_t *buffer,
 {
 	int retval = 0;
 
+#if (GPIB_CONFIG_DEVICE==1)
+	unsigned int adr1_bits = 0;
+	/* we need to temporarily disable the minor address in order
+	 to see the untalk */
+	adr1_bits = read_byte(priv, ADR1);
+	if ((adr1_bits & (HR_DT | HR_DL | ADDRESS_MASK)) == (HR_DL | 0x1f))
+		write_byte(priv, HR_ARS | HR_DT | HR_DL, ADR);
+	smp_mb__before_atomic();
+	clear_bit(LACS_NUM, &board->status);
+	clear_bit(ATN_NUM, &board->status);
+	clear_bit(ADSC_BN, &priv->state);
+	smp_mb__after_atomic();
+#endif
+
 	*bytes_written = 0;
 
 	smp_mb__before_atomic();
 	clear_bit( DEV_CLEAR_BN, &priv->state ); //XXX
 	smp_mb__after_atomic();
 
+#if (GPIB_CONFIG_DEVICE==1)
+	if (length == 0) return 0;
+	retval = pio_write(board, priv, buffer, length, bytes_written, send_eoi);
+	/* restore minor addressing */
+	if ((adr1_bits & (HR_DT | HR_DL | ADDRESS_MASK)) == (HR_DL | 0x1f))
+		write_byte(priv, HR_ARS | HR_DL | 0x1f, ADR);
+#else
 	if(send_eoi)
 	{
 		length-- ; /* save the last byte for sending EOI */
@@ -234,7 +298,7 @@ int nec7210_write(gpib_board_t *board, nec7210_private_t *priv, uint8_t *buffer,
 			return retval;
 		}
 	}
-
+#endif
 	return retval;
 }
 

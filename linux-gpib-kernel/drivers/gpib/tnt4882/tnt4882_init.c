@@ -153,6 +153,18 @@ int tnt4882_parallel_poll(gpib_board_t *board, uint8_t *result)
 void tnt4882_parallel_poll_configure(gpib_board_t *board, uint8_t config )
 {
 	tnt4882_private_t *priv = board->private_data;
+#if (GPIB_CONFIG_TNT5004==1)
+	if(priv->nec7210_priv.type == TNT5004) {
+		write_byte(&priv->nec7210_priv, AUXRI | 0x4, AUXMR);		/* configure locally */
+		if (config) {
+			write_byte(&priv->nec7210_priv, PPR | config, AUXMR);	/* set response + clear sense */
+		}
+		else {
+			write_byte(&priv->nec7210_priv, PPR | 0x10, AUXMR);		/* disable ppoll */
+		}
+	}
+	else
+#endif
 	nec7210_parallel_poll_configure( board, &priv->nec7210_priv, config );
 }
 void tnt4882_parallel_poll_response(gpib_board_t *board, int ist )
@@ -222,6 +234,68 @@ void tnt4882_return_to_local( gpib_board_t *board )
 	tnt4882_private_t *priv = board->private_data;
 	nec7210_return_to_local( board, &priv->nec7210_priv );
 }
+#if (GPIB_CONFIG_DEVICE==1)
+/*
+ * Puts the TNT4882 either with set_local = 0 into 7210 mode (remote configuration) or
+ * with set_local = 1 into true PP2 mode (local configuration only). Use set_local = 1
+ * to control PPoll response via bit 4 (Unconfigure) of the PPR register.
+ */
+void tnt4882_local_parallel_poll_mode( gpib_board_t *board, int set_local )
+{
+	tnt4882_private_t *tnt_priv = board->private_data;
+	if(tnt_priv->nec7210_priv.type != NEC7210)
+	{
+		if (set_local) {
+			tnt_priv->auxi_bits |= PP2;
+			write_byte(&tnt_priv->nec7210_priv, tnt_priv->auxi_bits, AUXMR);
+		}
+		else {
+			tnt_priv->auxi_bits &= ~PP2;
+			write_byte(&tnt_priv->nec7210_priv, tnt_priv->auxi_bits, AUXMR);
+		}
+		return;
+	}else
+	{
+		nec7210_local_parallel_poll_mode(board, &tnt_priv->nec7210_priv, set_local);
+	}
+}
+
+/*
+ * Releases data acknowledge (DAC) for pending GPIB (secondary) command in
+ * DAC hold-off state with either accepting (do_accept = 1) or rejecting
+ * (do_accept = 0) the command.
+ */
+void tnt4882_release_dac_holdoff( gpib_board_t *board, int do_accept )
+{
+	tnt4882_private_t *priv = board->private_data;
+	nec7210_release_dac_holdoff( board, &priv->nec7210_priv, do_accept );
+}
+
+/*
+ * Sets the address mode and (if appropriate) secondary address (sad).
+ * Address mode implementation may be hardware specific, 7210 normally
+ * provides mode 0 (ton/toff), mode 1 (normal dual addressing), mode 2
+ * (extended single addressing) and mode 3 (extended dual addressing).
+ *
+ * Note that dual addressing is a special feature of the 7210 and compatibles.
+ */
+void tnt4882_set_address_mode( gpib_board_t *board, int address_mode, int sad )
+{
+	tnt4882_private_t *priv = board->private_data;
+	nec7210_set_address_mode( board, &priv->nec7210_priv, address_mode, sad );
+}
+
+/*
+ * Returns the current secondary address and whether the minor or major
+ * address has been addressed (meaningful for dual addressing and
+ * extended dual addressing only).
+ */
+void tnt4882_get_address_state( gpib_board_t *board, unsigned int *secondary, int *is_minor )
+{
+	tnt4882_private_t *priv = board->private_data;
+	nec7210_get_address_state( board, &priv->nec7210_priv, secondary, is_minor );
+}
+#endif
 
 gpib_interface_t ni_pci_interface =
 {
@@ -241,7 +315,9 @@ gpib_interface_t ni_pci_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
+#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -250,6 +326,11 @@ gpib_interface_t ni_pci_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: tnt4882_release_dac_holdoff,
+	set_address_mode: tnt4882_set_address_mode,
+	get_address_state: tnt4882_get_address_state,
+#endif
 };
 
 gpib_interface_t ni_pci_accel_interface =
@@ -270,7 +351,9 @@ gpib_interface_t ni_pci_accel_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
+#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -279,6 +362,11 @@ gpib_interface_t ni_pci_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: tnt4882_release_dac_holdoff,
+	set_address_mode: tnt4882_set_address_mode,
+	get_address_state: tnt4882_get_address_state,
+#endif
 };
 
 gpib_interface_t ni_isa_interface =
@@ -299,7 +387,9 @@ gpib_interface_t ni_isa_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
+#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -308,6 +398,11 @@ gpib_interface_t ni_isa_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: tnt4882_release_dac_holdoff,
+	set_address_mode: tnt4882_set_address_mode,
+	get_address_state: tnt4882_get_address_state,
+#endif
 };
 
 gpib_interface_t ni_nat4882_isa_interface =
@@ -328,7 +423,9 @@ gpib_interface_t ni_nat4882_isa_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
+#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -337,6 +434,11 @@ gpib_interface_t ni_nat4882_isa_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: tnt4882_release_dac_holdoff,
+	set_address_mode: tnt4882_set_address_mode,
+	get_address_state: tnt4882_get_address_state,
+#endif
 };
 
 gpib_interface_t ni_nec_isa_interface =
@@ -357,7 +459,9 @@ gpib_interface_t ni_nec_isa_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
+#endif
 	line_status: NULL,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -366,6 +470,11 @@ gpib_interface_t ni_nec_isa_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: tnt4882_release_dac_holdoff,
+	set_address_mode: tnt4882_set_address_mode,
+	get_address_state: tnt4882_get_address_state,
+#endif
 };
 
 gpib_interface_t ni_isa_accel_interface =
@@ -386,7 +495,9 @@ gpib_interface_t ni_isa_accel_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
+#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -395,6 +506,11 @@ gpib_interface_t ni_isa_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: tnt4882_release_dac_holdoff,
+	set_address_mode: tnt4882_set_address_mode,
+	get_address_state: tnt4882_get_address_state,
+#endif
 };
 
 gpib_interface_t ni_nat4882_isa_accel_interface =
@@ -415,7 +531,9 @@ gpib_interface_t ni_nat4882_isa_accel_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
+#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -424,6 +542,11 @@ gpib_interface_t ni_nat4882_isa_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: tnt4882_release_dac_holdoff,
+	set_address_mode: tnt4882_set_address_mode,
+	get_address_state: tnt4882_get_address_state,
+#endif
 };
 
 gpib_interface_t ni_nec_isa_accel_interface =
@@ -444,7 +567,9 @@ gpib_interface_t ni_nec_isa_accel_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
+#endif
 	line_status: NULL,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -453,6 +578,11 @@ gpib_interface_t ni_nec_isa_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: tnt4882_release_dac_holdoff,
+	set_address_mode: tnt4882_set_address_mode,
+	get_address_state: tnt4882_get_address_state,
+#endif
 };
 
 void tnt4882_board_reset( tnt4882_private_t *tnt_priv, gpib_board_t *board )
@@ -508,7 +638,11 @@ void tnt4882_init( tnt4882_private_t *tnt_priv, const gpib_board_t *board )
 	tnt_writeb( tnt_priv,AUX_7210, SWAPPED_AUXCR);
 	udelay(1);
 	// turn on one-chip mode
+#if (GPIB_CONFIG_TNT5004==1)
+ 	if(( nec_priv->type == TNT4882 ) || ( nec_priv->type == TNT5004 ))
+#else
 	if( nec_priv->type == TNT4882 )
+#endif
 		tnt_writeb(tnt_priv, NODMA | TNT_ONE_CHIP_BIT, HSSEL);
 	else
 		tnt_writeb(tnt_priv, NODMA, HSSEL);
@@ -523,6 +657,11 @@ void tnt4882_init( tnt4882_private_t *tnt_priv, const gpib_board_t *board )
 
 	// enable interrupt
 	tnt_writeb( tnt_priv, 0x1, INTRT );
+
+#if (GPIB_CONFIG_DEVICE==1)
+	tnt_priv->auxi_bits = AUXRI;
+	write_byte( &tnt_priv->nec7210_priv, tnt_priv->auxi_bits, AUXMR );
+#endif
 
 	// force immediate holdoff
 	write_byte( &tnt_priv->nec7210_priv, AUX_HLDI, AUXMR );
@@ -584,10 +723,14 @@ int ni_pci_attach(gpib_board_t *board, const gpib_board_config_t *config)
 		{
 		case PCI_DEVICE_ID_NI_GPIB:
 		case PCI_DEVICE_ID_NI_GPIB_PLUS:
+		case PCI_DEVICE_ID_NI_GPIB_PLUS2:
 		case PCI_DEVICE_ID_NI_PXIGPIB:
 		case PCI_DEVICE_ID_NI_PMCGPIB:
 		case PCI_DEVICE_ID_NI_PCIEGPIB:
 		case PCI_DEVICE_ID_NI_PCIE2GPIB:
+#if (GPIB_CONFIG_TNT5004==1)
+		case PCI_DEVICE_ID_MC_PCI488: 		// support for Measurement Computing PCI-488
+#endif
 		case PCI_DEVICE_ID_CEC_NI_GPIB:
 			found_board = 1;
 			break;
@@ -621,7 +764,21 @@ int ni_pci_attach(gpib_board_t *board, const gpib_board_config_t *config)
 	tnt_priv->irq = mite_irq(tnt_priv->mite);
 	printk( "tnt4882: irq %i\n", tnt_priv->irq );
 
-	tnt4882_init( tnt_priv, board );
+#if (GPIB_CONFIG_TNT5004==1)
+	// TNT5004 detection
+	switch(tnt_readb( tnt_priv, CSR ) & 0xf0) {
+	case 0x30:
+		nec_priv->type = TNT4882;
+		printk("tnt4882: TNT4882 chipset detected\n");
+		break;
+	case 0x40:
+		nec_priv->type = TNT5004;
+		printk("tnt4882: TNT5004 chipset detected\n");
+		break;
+	}
+#endif
+
+	 	tnt4882_init( tnt_priv, board );
 
 	return 0;
 }
@@ -787,10 +944,14 @@ static const struct pci_device_id tnt4882_pci_table[] =
 {
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_GPIB)},
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_GPIB_PLUS)},
+	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_GPIB_PLUS2)},
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_PXIGPIB)},
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_PMCGPIB)},
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_PCIEGPIB)},
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_PCIE2GPIB)},
+#if (GPIB_CONFIG_TNT5004==1)
+	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_MC_PCI488)},	// support for Measurement Computing PCI-488
+#endif
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_CEC_NI_GPIB)},
 	{ 0 }
 };

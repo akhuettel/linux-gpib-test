@@ -61,6 +61,12 @@ static int write_wait( gpib_board_t *board, tnt4882_private_t *tnt_priv,
 		fifo_xfer_done( tnt_priv ) ||
 		test_bit( BUS_ERROR_BN, &nec_priv->state ) ||
 		test_bit( DEV_CLEAR_BN, &nec_priv->state ) ||
+#if (GPIB_CONFIG_DEVICE==1)
+		(!send_commands &&
+ 			(test_bit( ADSC_BN, &nec_priv->state ) ||
+ 			test_bit( LACS_NUM, &board->status ) ||
+ 			test_bit( APT_NUM, &board->status ))) ||
+#endif
 		test_bit( TIMO_NUM, &board->status ) ) )
 	{
 		GPIB_DPRINTK( "gpib write interrupted\n" );
@@ -81,6 +87,26 @@ static int write_wait( gpib_board_t *board, tnt4882_private_t *tnt_priv,
 		printk("tnt4882: device clear interrupted write\n" );
 		return -EINTR;
 	}
+#if (GPIB_CONFIG_DEVICE==1)
+	if (!send_commands) {
+		if( test_bit( ADSC_BN, &nec_priv->state ) ){
+			if ( !test_bit( TACS_NUM, &board->status ) )	{
+				GPIB_DPRINTK("tnt4882: write interrupted (untalk)\n");
+				return -EINTR;
+			}
+		}
+		if( test_bit( LACS_NUM, &board->status ) )
+		{
+			GPIB_DPRINTK("tnt4882: write interrupted (device addressed as listener)\n");
+			return -EINTR;
+		}
+		if( test_bit( APT_NUM, &board->status ) )
+		{
+			GPIB_DPRINTK("tnt4882: write interrupted (secondary received)\n");
+			return -EINTR;
+		}
+	}
+#endif
 	return 0;
 }
 
@@ -95,7 +121,29 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	int32_t hw_count;
 	unsigned long flags;
 
-	*bytes_written = 0;
+#if (GPIB_CONFIG_DEVICE==1)
+ 	unsigned int adr1_bits = 0;
+	uint16_t word;
+	int isr3, i;
+
+ 	if (!send_commands) {
+ 		// we now should be already addressed as talker - make sure we are in TACS before trying to send data
+		if ((read_byte(nec_priv, ADSR) & HR_TA) == 0) {
+			// don't continue in case of change in addressing
+			if (read_byte(nec_priv, ISR2) == HR_ADSC) {
+				printk("tnt4882: address change detected (aborting transfer)\n");
+				return -EINTR;
+			}
+			else {
+				printk("tnt4882: write without being addressed as talker\n");
+				return -EINTR;
+			}
+		}
+ 	}
+ 	read_byte(nec_priv, ISR2);	// clear status 2
+#endif
+ 
+ 	*bytes_written = 0;
 	// FIXME: really, DEV_CLEAR_BN should happen elsewhere to prevent race
 	smp_mb__before_atomic();
 	clear_bit(DEV_CLEAR_BN, &nec_priv->state);	
@@ -103,13 +151,45 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 
 	imr1_bits = nec_priv->reg_bits[ IMR1 ];
 	imr2_bits = nec_priv->reg_bits[ IMR2 ];
+
+#if (GPIB_CONFIG_DEVICE==1)
+ 	if (send_commands)
+ 		nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ERRIE | HR_DECIE );
+ 	else
+ 		nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ERRIE | HR_DECIE | HR_APTIE);
+	/* if extended dual addressing with minor address 31 is being used (HP Identify hack),
+	 * we need to temporarily disable minor talk address in order to see the untalk on
+	 * the major address during writes */
+	if (!send_commands) {
+		adr1_bits = read_byte(nec_priv, ADR1);
+		if ((adr1_bits & (HR_DT | HR_DL | ADDRESS_MASK)) == (HR_DL | 0x1f)) {
+			write_byte( nec_priv, HR_ARS | HR_DT | HR_DL, ADR);
+		}
+	}
+#else
 	nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ERRIE | HR_DECIE );
+#endif
+#if (GPIB_CONFIG_TNT5004==1)
+	if(( nec_priv->type != TNT4882 ) && ( nec_priv->type != TNT5004 ))
+#else
 	if( nec_priv->type != TNT4882 )
+#endif
+#if (GPIB_CONFIG_DEVICE==1)
+		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_DMAO | HR_ACIE );
+	else
+		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_ACIE);
+	imr0_bits = tnt_priv->imr0_bits;
+	if (send_commands)
+		tnt_priv->imr0_bits &= ~TNT_ATNI_BIT;
+	else
+		tnt_priv->imr0_bits |= TNT_ATNI_BIT;
+#else
 		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_DMAO );
 	else
 		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, 0 );
 	imr0_bits = tnt_priv->imr0_bits;
 	tnt_priv->imr0_bits &= ~TNT_ATNI_BIT;
+#endif
 	tnt_writeb(tnt_priv, tnt_priv->imr0_bits, IMR0);
 
 	tnt_writeb( tnt_priv, RESET_FIFO, CMDR );
@@ -119,7 +199,11 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	if( send_eoi )
 	{
 		bits |= TNT_CCEN;
+#if (GPIB_CONFIG_TNT5004==1)
+		if((nec_priv->type != TNT4882 ) && (nec_priv->type != TNT5004 ))
+#else
 		if(nec_priv->type != TNT4882 )
+#endif
 			tnt_writeb( tnt_priv, AUX_SEOI, CCR );
 	}
 	if( send_commands )
@@ -133,6 +217,10 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	tnt_writeb( tnt_priv, ( hw_count >> 16 ) & 0xff, CNT2 );
 	tnt_writeb( tnt_priv, ( hw_count >> 24 ) & 0xff, CNT3 );
 
+#if (GPIB_CONFIG_DEVICE==1)
+	nec7210_set_handshake_mode(board, nec_priv, HR_HLDA);		// hold-off on all
+	write_byte(nec_priv, AUX_HLDI, AUXMR);				// hold-off immediate
+#endif
 	tnt_writeb( tnt_priv, GO, CMDR );
 	udelay(1);
 
@@ -140,6 +228,11 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	tnt_priv->imr3_bits |= HR_DONE;
 	tnt_writeb( tnt_priv, tnt_priv->imr3_bits, IMR3 );
 	spin_unlock_irqrestore( &board->spinlock, flags );
+#if (GPIB_CONFIG_DEVICE==1)
+	if (!send_commands) {
+		clear_bit( ADSC_BN, &nec_priv->state);	// reset ADSC
+	}
+#endif
 
 	while( count < length  )
 	{
@@ -149,6 +242,46 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 		if( fifo_xfer_done( tnt_priv ) ) break;
 
 		spin_lock_irqsave( &board->spinlock, flags );
+#if (GPIB_CONFIG_DEVICE==1)
+		// alternative method to fill FIFO as suggested by NI (uses minimum status checks)
+		while ( fifo_space_available( tnt_priv ) && count < length ) {
+			isr3 = tnt_readb( tnt_priv, ISR3 );
+			switch (isr3 & 0x4c) {
+			case 0x08:	/* NFF */
+			case 0x48:	/* NFF|INTSRC2 */
+				/* 16 words in FIFO are empty */
+				for (i=0; i<16; i++) {
+					if (count < length) {
+						word = buffer[ count++ ] & 0xff;
+						if( count < length )
+							word |= ( buffer[ count++ ] << 8 ) & 0xff00;
+						tnt_priv->io_writew( word, nec_priv->iobase + FIFOB );
+					}
+				}
+				break;
+			case 0x4c:	/* NFF|INTSRC2|NEF */
+				/* 8 words in FIFO are empty */
+				for (i=0; i<8; i++) {
+					if (count < length) {
+						word = buffer[ count++ ] & 0xff;
+						if( count < length )
+							word |= ( buffer[ count++ ] << 8 ) & 0xff00;
+						tnt_priv->io_writew( word, nec_priv->iobase + FIFOB );
+					}
+				}
+				break;
+			case 0x0c:	/* NFF|NEF */
+				/* 1 word in FIFO is empty */
+				if (count < length) {
+					word = buffer[ count++ ] & 0xff;
+					if( count < length )
+						word |= ( buffer[ count++ ] << 8 ) & 0xff00;
+					tnt_priv->io_writew( word, nec_priv->iobase + FIFOB );
+				}
+				break;
+			}
+		}
+#else
 		while( fifo_space_available( tnt_priv ) && count < length )
 		{
 			uint16_t word;
@@ -158,6 +291,7 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 				word |= ( buffer[ count++ ] << 8 ) & 0xff00;
 			tnt_priv->io_writew( word, nec_priv->iobase + FIFOB );
 		}
+#endif
 		tnt_priv->imr3_bits |= HR_NFF;
 		tnt_writeb( tnt_priv, tnt_priv->imr3_bits, IMR3 );
 		spin_unlock_irqrestore( &board->spinlock, flags );
@@ -166,9 +300,23 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 			schedule();
 	}
 	// wait last byte has been sent
+#if (GPIB_CONFIG_DEVICE==1)
+	if (send_commands) {
+		if(retval == 0)
+			retval = write_wait(board, tnt_priv, 1, send_commands);
+	}
+	else {
+		if ((adr1_bits & (HR_DT | HR_DL | ADDRESS_MASK)) == (HR_DL | 0x1f))
+			/* re-enable secondary address for extended dual addressing with
+			 * minor address 31 (HP Identify hack) */
+			write_byte( nec_priv, HR_ARS | HR_DL | 0x1f, ADR);
+		if ((retval == 0) && test_bit( TACS_NUM, &board->status ))
+			retval = write_wait(board, tnt_priv, 1, send_commands);
+	}
+#else
 	if(retval == 0)
 		retval = write_wait(board, tnt_priv, 1, send_commands);
-
+#endif
 	tnt_writeb( tnt_priv, STOP, CMDR );
 	udelay(1);
 

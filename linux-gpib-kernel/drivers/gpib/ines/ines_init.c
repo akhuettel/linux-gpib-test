@@ -226,6 +226,29 @@ void ines_return_to_local( gpib_board_t *board )
 	ines_private_t *priv = board->private_data;
 	nec7210_return_to_local( board, &priv->nec7210_priv );
 }
+#if (GPIB_CONFIG_DEVICE==1)
+void ines_local_parallel_poll_mode( gpib_board_t *board, int set_local )
+{
+	ines_private_t *priv = board->private_data;
+	nec7210_local_parallel_poll_mode( board, &priv->nec7210_priv, set_local );
+}
+void ines_release_dac_holdoff( gpib_board_t *board, int do_accept )
+{
+	ines_private_t *priv = board->private_data;
+	nec7210_release_dac_holdoff( board, &priv->nec7210_priv, do_accept );
+}
+void ines_set_address_mode( gpib_board_t *board, int address_mode, int sad )
+{
+	ines_private_t *priv = board->private_data;
+	nec7210_set_address_mode( board, &priv->nec7210_priv, address_mode, sad );
+}
+void ines_get_address_state( gpib_board_t *board, unsigned int *secondary, int *is_minor )
+{
+	ines_private_t *priv = board->private_data;
+	nec7210_get_address_state( board, &priv->nec7210_priv, secondary, is_minor );
+}
+#endif
+
 
 gpib_interface_t ines_pci_unaccel_interface =
 {
@@ -245,7 +268,9 @@ gpib_interface_t ines_pci_unaccel_interface =
 	parallel_poll: ines_parallel_poll,
 	parallel_poll_configure: ines_parallel_poll_configure,
 	parallel_poll_response: ines_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: ines_local_parallel_poll_mode,
+#endif
 	line_status: ines_line_status,
 	update_status: ines_update_status,
 	primary_address: ines_primary_address,
@@ -254,6 +279,11 @@ gpib_interface_t ines_pci_unaccel_interface =
 	serial_poll_status: ines_serial_poll_status,
 	t1_delay: ines_t1_delay,
 	return_to_local: ines_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: ines_release_dac_holdoff,
+	set_address_mode: ines_set_address_mode,
+	get_address_state: ines_get_address_state,
+#endif
 };
 
 gpib_interface_t ines_pci_interface =
@@ -274,7 +304,9 @@ gpib_interface_t ines_pci_interface =
 	parallel_poll: ines_parallel_poll,
 	parallel_poll_configure: ines_parallel_poll_configure,
 	parallel_poll_response: ines_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: ines_local_parallel_poll_mode,
+#endif
 	line_status: ines_line_status,
 	update_status: ines_update_status,
 	primary_address: ines_primary_address,
@@ -283,6 +315,11 @@ gpib_interface_t ines_pci_interface =
 	serial_poll_status: ines_serial_poll_status,
 	t1_delay: ines_t1_delay,
 	return_to_local: ines_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: ines_release_dac_holdoff,
+	set_address_mode: ines_set_address_mode,
+	get_address_state: ines_get_address_state,
+#endif
 };
 
 gpib_interface_t ines_pci_accel_interface =
@@ -303,7 +340,9 @@ gpib_interface_t ines_pci_accel_interface =
 	parallel_poll: ines_parallel_poll,
 	parallel_poll_configure: ines_parallel_poll_configure,
 	parallel_poll_response: ines_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: ines_local_parallel_poll_mode,
+#endif
 	line_status: ines_line_status,
 	update_status: ines_update_status,
 	primary_address: ines_primary_address,
@@ -312,6 +351,11 @@ gpib_interface_t ines_pci_accel_interface =
 	serial_poll_status: ines_serial_poll_status,
 	t1_delay: ines_t1_delay,
 	return_to_local: ines_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: ines_release_dac_holdoff,
+	set_address_mode: ines_set_address_mode,
+	get_address_state: ines_get_address_state,
+#endif
 };
 
 gpib_interface_t ines_isa_interface =
@@ -332,7 +376,9 @@ gpib_interface_t ines_isa_interface =
 	parallel_poll: ines_parallel_poll,
 	parallel_poll_configure: ines_parallel_poll_configure,
 	parallel_poll_response: ines_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+#if (GPIB_CONFIG_DEVICE==1)
+	local_parallel_poll_mode: ines_local_parallel_poll_mode,
+#endif
 	line_status: ines_line_status,
 	update_status: ines_update_status,
 	primary_address: ines_primary_address,
@@ -341,6 +387,11 @@ gpib_interface_t ines_isa_interface =
 	serial_poll_status: ines_serial_poll_status,
 	t1_delay: ines_t1_delay,
 	return_to_local: ines_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: ines_release_dac_holdoff,
+	set_address_mode: ines_set_address_mode,
+	get_address_state: ines_get_address_state,
+#endif
 };
 
 int ines_allocate_private(gpib_board_t *board)

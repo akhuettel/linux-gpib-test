@@ -139,6 +139,28 @@ void pc2_return_to_local( gpib_board_t *board )
 	pc2_private_t *priv = board->private_data;
 	nec7210_return_to_local( board, &priv->nec7210_priv );
 }
+#if (GPIB_CONFIG_DEVICE==1)
+void pc2_local_parallel_poll_mode( gpib_board_t *board, int set_local )
+{
+	pc2_private_t *priv = board->private_data;
+	nec7210_local_parallel_poll_mode( board, &priv->nec7210_priv, set_local );
+}
+void pc2_release_dac_holdoff( gpib_board_t *board, int do_accept )
+{
+	pc2_private_t *priv = board->private_data;
+	nec7210_release_dac_holdoff( board, &priv->nec7210_priv, do_accept );
+}
+void pc2_set_address_mode( gpib_board_t *board, int address_mode, int sad )
+{
+	pc2_private_t *priv = board->private_data;
+	nec7210_set_address_mode( board, &priv->nec7210_priv, address_mode, sad );
+}
+void pc2_get_address_state( gpib_board_t *board, unsigned int *secondary, int *is_minor )
+{
+	pc2_private_t *priv = board->private_data;
+	nec7210_get_address_state( board, &priv->nec7210_priv, secondary, is_minor );
+}
+#endif
 
 gpib_interface_t pc2_interface =
 {
@@ -158,7 +180,7 @@ gpib_interface_t pc2_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+	local_parallel_poll_mode: pc2_local_parallel_poll_mode,
 	line_status:	NULL,
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
@@ -167,6 +189,11 @@ gpib_interface_t pc2_interface =
 	serial_poll_status:	pc2_serial_poll_status,
 	t1_delay: pc2_t1_delay,
 	return_to_local: pc2_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: pc2_release_dac_holdoff,
+	set_address_mode: pc2_set_address_mode,
+	get_address_state: pc2_get_address_state,
+#endif
 };
 
 gpib_interface_t pc2a_interface =
@@ -187,7 +214,7 @@ gpib_interface_t pc2a_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+	local_parallel_poll_mode: pc2_local_parallel_poll_mode,
 	line_status:	NULL,
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
@@ -196,6 +223,11 @@ gpib_interface_t pc2a_interface =
 	serial_poll_status:	pc2_serial_poll_status,
 	t1_delay: pc2_t1_delay,
 	return_to_local: pc2_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: pc2_release_dac_holdoff,
+	set_address_mode: pc2_set_address_mode,
+	get_address_state: pc2_get_address_state,
+#endif
 };
 
 gpib_interface_t pc2a_cb7210_interface =
@@ -216,7 +248,7 @@ gpib_interface_t pc2a_cb7210_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+	local_parallel_poll_mode: pc2_local_parallel_poll_mode,
 	line_status:	NULL, //XXX
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
@@ -225,6 +257,11 @@ gpib_interface_t pc2a_cb7210_interface =
 	serial_poll_status:	pc2_serial_poll_status,
 	t1_delay: pc2_t1_delay,
 	return_to_local: pc2_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: pc2_release_dac_holdoff,
+	set_address_mode: pc2_set_address_mode,
+	get_address_state: pc2_get_address_state,
+#endif
 };
 
 gpib_interface_t pc2_2a_interface =
@@ -245,7 +282,7 @@ gpib_interface_t pc2_2a_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
-	local_parallel_poll_mode: NULL, // XXX
+	local_parallel_poll_mode: pc2_local_parallel_poll_mode,
 	line_status:	NULL,
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
@@ -254,6 +291,11 @@ gpib_interface_t pc2_2a_interface =
 	serial_poll_status:	pc2_serial_poll_status,
 	t1_delay: pc2_t1_delay,
 	return_to_local: pc2_return_to_local,
+#if (GPIB_CONFIG_DEVICE==1)
+	release_dac_holdoff: pc2_release_dac_holdoff,
+	set_address_mode: pc2_set_address_mode,
+	get_address_state: pc2_get_address_state,
+#endif
 };
 
 static int allocate_private(gpib_board_t *board)

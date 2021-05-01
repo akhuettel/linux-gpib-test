@@ -58,6 +58,31 @@ irqreturn_t nec7210_interrupt_have_status( gpib_board_t *board,
 	unsigned long dma_flags;
 #endif
 	int retval = IRQ_NONE;
+
+#if (GPIB_CONFIG_DEVICE==1)
+	unsigned int adsr;
+	adsr = read_byte(priv, ADSR);
+
+	// there is no ATN interrupt on vanilla NEC7210 as it is with some of the ASICs
+	// in ISR0, so we use try to at least any event to update ATN status...
+	if ((adsr & HR_NATN) == 0) set_bit(ATN_NUM, &board->status);
+	else clear_bit(ATN_NUM, &board->status);
+
+	// address pass through received
+	if(status1 & HR_APT)
+	{
+		// we *intentionally* do not release the DAC hold-off at this time (has to be
+		// either accepted or declined by calling program with release_dac_holdoff())
+		priv->command = read_byte(priv, CPTR);
+		priv->is_minor_address = adsr & 0x1;
+		set_bit(APT_NUM, &board->status);
+	}
+
+	// address change detected
+	if(status2 & HR_ADSC) {
+		set_bit( ADSC_BN, &priv->state);
+	}
+#endif
 	
 	smp_mb__before_atomic();
 

@@ -35,6 +35,9 @@ enum
 	SASR = 0x1b,
 	IMR0 = 0x1d,
 	IMR3 = 0x12,
+#if (GPIB_CONFIG_DEVICE==1)
+	HIER = 0x13,	// high speed enable register (for deglitching etc.)
+#endif
 	CNT0 = 0x14,
 	CNT1 = 0x16,
 	KEYREG = 0x17,	// key control register (7210 mode only)

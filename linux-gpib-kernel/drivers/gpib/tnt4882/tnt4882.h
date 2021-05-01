@@ -33,10 +33,14 @@ enum
 {
 	PCI_DEVICE_ID_NI_GPIB = 0xc801,
 	PCI_DEVICE_ID_NI_GPIB_PLUS = 0xc811,
+	PCI_DEVICE_ID_NI_GPIB_PLUS2 = 0x71ad,
 	PCI_DEVICE_ID_NI_PXIGPIB = 0xc821,
 	PCI_DEVICE_ID_NI_PMCGPIB = 0xc831,
 	PCI_DEVICE_ID_NI_PCIEGPIB = 0x70cf,
 	PCI_DEVICE_ID_NI_PCIE2GPIB = 0x710e,
+#if (GPIB_CONFIG_TNT5004==1)
+ 	PCI_DEVICE_ID_MC_PCI488 = 0x7259,		// support for Measurement Computing PCI-488 (identical design as PCI-GPIB with TNT5004)
+ #endif
 	PCI_DEVICE_ID_CEC_NI_GPIB = 0x7258
 };
 
@@ -50,6 +54,9 @@ typedef struct
 	volatile unsigned short imr0_bits;
 	volatile unsigned short imr3_bits;
 	unsigned short auxg_bits;	// bits written to auxilliary register G
+#if (GPIB_CONFIG_DEVICE==1)
+	unsigned short auxi_bits;	// bits written to auxilliary register I
+#endif
 	void (*io_writeb)(unsigned int value, void *address);
 	void (*io_writew)(unsigned int value, void *address);
 	unsigned int (*io_readb)(void *address);
@@ -95,6 +102,12 @@ uint8_t tnt4882_serial_poll_status( gpib_board_t *board );
 int tnt4882_line_status( const gpib_board_t *board );
 unsigned int tnt4882_t1_delay( gpib_board_t *board, unsigned int nano_sec );
 void tnt4882_return_to_local( gpib_board_t *board );
+#if (GPIB_CONFIG_DEVICE==1)
+void tnt4882_local_parallel_poll_mode( gpib_board_t *board, int set_local );
+void tnt4882_release_dac_holdoff( gpib_board_t *board, int do_accept );
+void tnt4882_set_address_mode( gpib_board_t *board, int address_mode, int sad );
+void tnt4882_get_address_state( gpib_board_t *board, unsigned int *secondary, int *is_minor );
+#endif
 
 // pcmcia init/cleanup
 int __init init_ni_gpib_cs(void);
@@ -148,6 +161,9 @@ static inline unsigned short tnt_readb( tnt4882_private_t *priv, unsigned long o
 	case BSR:
 		switch(priv->nec7210_priv.type)
 		{
+#if (GPIB_CONFIG_TNT5004==1)
+		case TNT5004:
+#endif
 		case TNT4882:
 			retval = priv->io_readb(address);
 			break;
@@ -185,6 +201,9 @@ static inline void tnt_writeb( tnt4882_private_t *priv, unsigned short value, un
 	case BCR:
 		switch(priv->nec7210_priv.type)
 		{
+#if (GPIB_CONFIG_TNT5004==1)
+		case TNT5004:
+#endif
 		case TNT4882:
 			priv->io_writeb( value, address );
 			break;

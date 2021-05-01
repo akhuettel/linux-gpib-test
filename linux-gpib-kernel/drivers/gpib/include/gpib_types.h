@@ -181,6 +181,10 @@ struct gpib_interface_struct
 	unsigned no_7_bit_eos : 1;
 	/* skip check for listeners before trying to send command bytes */
 	unsigned skip_check_for_command_acceptors : 1;
+	void ( *release_dac_holdoff )( gpib_board_t *board, int do_accept );
+	void ( *set_address_mode )( gpib_board_t *board, int address_mode, int sad );
+	void ( *get_address_state )( gpib_board_t *board, unsigned int *secondary, int *is_minor );
+
 };
 
 typedef struct
