@@ -19,7 +19,7 @@
 #include <pthread.h>
 
 static const int device_wait_mask = TIMO | END | CMPL | RQS;
-static const int board_wait_mask =  TIMO | END | CMPL | SPOLL |
+static const int board_wait_mask =  TIMO | END | CMPL | SPOLL | APT |
 	EVENT | LOK | REM | CIC | ATN | TACS | LACS | DTAS | DCAS | SRQI;
 
 void fixup_status_bits( const ibConf_t *conf, int *status )
@@ -128,7 +128,7 @@ int ibwait( int ud, int mask )
 		}
 	}
 	
-	clear_mask = mask & ( DTAS | DCAS | SPOLL);
+ 	clear_mask = mask & (APT | DTAS | DCAS | SPOLL);
 	retval = my_wait( conf, mask, clear_mask, 0, &status );
 	if( retval < 0 )
 		return general_exit_library(ud, 1, 0, 0, 0, 0, 1);

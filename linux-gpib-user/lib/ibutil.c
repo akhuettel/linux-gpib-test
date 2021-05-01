@@ -344,7 +344,8 @@ int conf_lock_board( ibConf_t *conf )
 
 	board = interfaceBoard( conf );
 
-	assert( conf->has_lock == 0 );
+	// we don't want core dumps
+	if (conf->has_lock) return 0;
 
 	retval = lock_board_mutex( board );
 	if( retval < 0 ) return retval;
@@ -361,7 +362,8 @@ void conf_unlock_board( ibConf_t *conf )
 
 	board = interfaceBoard( conf );
 
-	assert( conf->has_lock );
+	// we don't want core dumps
+	if (conf->has_lock == 0) return;
 
 	conf->has_lock = 0;
 

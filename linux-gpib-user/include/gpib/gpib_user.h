@@ -19,6 +19,10 @@
 #ifndef _GPIB_USER_H
 #define _GPIB_USER_H
 
+#ifdef BIN				// @@@ avoid conflict of config.h with BIN enum member in eos_flags below
+#undef BIN				// @@@
+#endif					// @@@
+
 #define GPIB_MAX_NUM_BOARDS 16
 #define GPIB_MAX_NUM_DESCRIPTORS 0x1000
 
@@ -39,7 +43,8 @@ enum ibsta_bit_numbers
 	SRQI_NUM = 12,
 	END_NUM = 13,
 	TIMO_NUM = 14,
-	ERR_NUM = 15
+	ERR_NUM = 15,
+ 	APT_NUM = 16
 };
 
 /* IBSTA status bits (returned by all functions) */
@@ -60,12 +65,13 @@ enum ibsta_bits
 	SRQI = ( 1 << SRQI_NUM ),	/* SRQ is asserted */
 	END = ( 1 << END_NUM ),	/* EOI or EOS encountered */
 	TIMO = ( 1 << TIMO_NUM ),	/* Time limit on I/O or wait function exceeded */
-	ERR = ( 1 << ERR_NUM )	/* Function call terminated on error */
+	ERR = ( 1 << ERR_NUM ),	/* Function call terminated on error */
+ 	APT = ( 1 << APT_NUM )		/* secondary GPIB address has been received */
 };
 
 static const int device_status_mask = ERR | TIMO | END | CMPL | RQS;
 static const int board_status_mask = ERR | TIMO | END | CMPL | SPOLL |
-	EVENT | LOK | REM | CIC | ATN | TACS | LACS | DTAS | DCAS | SRQI;
+	APT | EVENT | LOK | REM | CIC | ATN | TACS | LACS | DTAS | DCAS | SRQI;
 
 /* IBERR error codes */
 enum iberr_code
