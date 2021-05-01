@@ -15,7 +15,7 @@ AC_INIT([linux-gpib-user],[4.4.0])
 #
 # If any interfaces have been removed since the last public release, then set
 # age to 0.
-GPIB_SO_VERSION=5:0:0
+GPIB_SO_VERSION=5:0:4
 AC_CONFIG_SRCDIR([lib/ibask.c])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
