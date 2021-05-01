@@ -1,7 +1,7 @@
 
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([linux-gpib-user],[4.3.4])
+AC_INIT([linux-gpib-user],[4.4.0])
 # libtool version: current:revision:age
 #
 # If the library source code has changed at all since the last update, then
@@ -15,7 +15,7 @@ AC_INIT([linux-gpib-user],[4.3.4])
 #
 # If any interfaces have been removed since the last public release, then set
 # age to 0.
-GPIB_SO_VERSION=4:0:4
+GPIB_SO_VERSION=5:0:0
 AC_CONFIG_SRCDIR([lib/ibask.c])
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
