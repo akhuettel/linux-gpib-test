@@ -179,8 +179,9 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 	imr0_bits = tnt_priv->imr0_bits;
 #if (GPIB_CONFIG_DEVICE==1)
 	tnt_priv->imr0_bits |= TNT_ATNI_BIT;
-#endif
+#else
 	tnt_priv->imr0_bits &= ~TNT_ATNI_BIT;
+#endif
 	tnt_writeb(tnt_priv, tnt_priv->imr0_bits, IMR0);
 	tnt_writeb( tnt_priv, nec_priv->auxa_bits | HR_HLDA, CCR );
 	bits = TNT_TLCHE | TNT_B_16BIT | TNT_IN | TNT_CCEN;
