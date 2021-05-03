@@ -1451,6 +1451,14 @@ volatile int ibsta;
 	cause of the error.</entry>
 	<entry>board or device</entry>
 	</row>
+	<row>
+	<entry>APT</entry>
+	<entry>0x10000</entry>
+	<entry>APT is set if a secondary GPIB address has been
+	received. Used only with extended device emulation.
+	</entry>
+	<entry>board</entry>
+	</row>
 	</tbody>
 	</tgroup>
 	</table>
