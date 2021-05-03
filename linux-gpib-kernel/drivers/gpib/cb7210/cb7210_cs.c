@@ -330,7 +330,9 @@ gpib_interface_t cb_pcmcia_unaccel_interface =
 	parallel_poll: cb7210_parallel_poll,
 	parallel_poll_configure: cb7210_parallel_poll_configure,
 	parallel_poll_response: cb7210_parallel_poll_response,
+#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: cb7210_local_parallel_poll_mode,
+#endif
 	line_status: cb7210_line_status,
 	update_status: cb7210_update_status,
 	primary_address: cb7210_primary_address,
@@ -359,7 +361,9 @@ gpib_interface_t cb_pcmcia_interface =
 	parallel_poll: cb7210_parallel_poll,
 	parallel_poll_configure: cb7210_parallel_poll_configure,
 	parallel_poll_response: cb7210_parallel_poll_response,
+#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: cb7210_local_parallel_poll_mode,
+#endif
 	line_status: cb7210_line_status,
 	update_status: cb7210_update_status,
 	primary_address: cb7210_primary_address,
@@ -388,7 +392,9 @@ gpib_interface_t cb_pcmcia_accel_interface =
 	parallel_poll: cb7210_parallel_poll,
 	parallel_poll_configure: cb7210_parallel_poll_configure,
 	parallel_poll_response: cb7210_parallel_poll_response,
+#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: cb7210_local_parallel_poll_mode,
+#endif
 	line_status: cb7210_line_status,
 	update_status: cb7210_update_status,
 	primary_address: cb7210_primary_address,

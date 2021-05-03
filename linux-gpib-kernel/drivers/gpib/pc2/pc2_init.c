@@ -180,7 +180,9 @@ gpib_interface_t pc2_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
+#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: pc2_local_parallel_poll_mode,
+#endif
 	line_status:	NULL,
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
@@ -214,7 +216,9 @@ gpib_interface_t pc2a_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
+#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: pc2_local_parallel_poll_mode,
+#endif
 	line_status:	NULL,
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
@@ -248,7 +252,9 @@ gpib_interface_t pc2a_cb7210_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
+#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: pc2_local_parallel_poll_mode,
+#endif
 	line_status:	NULL, //XXX
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
@@ -282,7 +288,9 @@ gpib_interface_t pc2_2a_interface =
 	parallel_poll:	pc2_parallel_poll,
 	parallel_poll_configure:	pc2_parallel_poll_configure,
 	parallel_poll_response:	pc2_parallel_poll_response,
+#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: pc2_local_parallel_poll_mode,
+#endif
 	line_status:	NULL,
 	update_status:	pc2_update_status,
 	primary_address:	pc2_primary_address,
