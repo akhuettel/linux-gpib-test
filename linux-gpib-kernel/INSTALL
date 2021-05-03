@@ -100,7 +100,14 @@ o)	For custom builds these are the environment variables that can
 	  By default PCMCIA support is disabled (ENABLE_PCMCIA is set to 0).
 	  To enable PCMCIA support: make ENABLE_PCMCIA=1 
 
-	  GPIB_DEBUG=<0 | 1>
+          ENABLE_DEVICE=<0 | 1>
+	  If you want to enable device emulation extensions to support
+          for example the hpdrive emulation utility set the
+          ENABLE_DEVICE option to 1. 
+	  By default ENABLE_DEVICE is set to 0 
+          To enable device emulation extension support: make ENABLE_DEVICE=1
+
+ 	  GPIB_DEBUG=<0 | 1>
 	  GPIB_DEBUG is used to control the console output of the drivers.
 	  By default it is set to 0 which disables debug output.
 	  To enable driver debug output: make GPIB_DEBUG=1
