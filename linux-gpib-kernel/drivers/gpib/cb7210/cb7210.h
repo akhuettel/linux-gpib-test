@@ -91,6 +91,7 @@ void cb7210_serial_poll_response(gpib_board_t *board, uint8_t status);
 uint8_t cb7210_serial_poll_status( gpib_board_t *board );
 void cb7210_parallel_poll_configure(gpib_board_t *board, uint8_t configuration);
 void cb7210_parallel_poll_response(gpib_board_t *board, int ist);
+void cb7210_local_parallel_poll_mode( gpib_board_t *board, int );
 int cb7210_line_status( const gpib_board_t *board );
 unsigned int cb7210_t1_delay( gpib_board_t *board, unsigned int nano_sec );
 void cb7210_return_to_local( gpib_board_t *board );
