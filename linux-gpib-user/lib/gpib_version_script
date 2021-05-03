@@ -42,10 +42,6 @@ GPIB_DUMMY_VERSION {
  		ReleaseDacHoldoff;
  		SetAddressMode;
  		GetAddressState;
- 		ReadRegister8;
- 		WriteRegister8;
- 		ReadRegister16;
- 		WriteRegister16;
  		WaitSRQ;
 		ibask;
 		ibbna;
