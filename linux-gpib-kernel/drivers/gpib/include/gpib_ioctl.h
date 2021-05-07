@@ -206,13 +206,11 @@ enum gpib_ioctl
 	IBPP2_GET = _IOR( GPIB_CODE, 41, local_ppoll_mode_ioctl_t ),
 	IBSELECT_DEVICE_PATH = _IOW( GPIB_CODE, 43, select_device_path_ioctl_t),
 	// 44 was IBSELECT_SERIAL_NUMBER
-	IBRSV2 = _IOW( GPIB_CODE, 45, request_service2_t )
-#if (GPIB_CONFIG_DEVICE==1)
-	,
-	IBPPC_LOCAL = _IOW( GPIB_CODE, 40, int ),
- 	IBRELEASE_DAC_HOLDOFF = _IOW( GPIB_CODE, 41, int ),
- 	IBSET_ADDRESS_MODE = _IOW( GPIB_CODE, 42, set_address_mode_ioctl_t ),
- 	IBGET_ADDRESS_STATE = _IOR( GPIB_CODE, 43, get_address_state_ioctl_t )
+	IBRSV2 = _IOW( GPIB_CODE, 45, request_service2_t ),
+	// hpdrive specific ioctls
+ 	IBRELEASE_DAC_HOLDOFF = _IOW( GPIB_CODE, 46, int ),
+ 	IBSET_ADDRESS_MODE = _IOW( GPIB_CODE, 47, set_address_mode_ioctl_t ),
+ 	IBGET_ADDRESS_STATE = _IOR( GPIB_CODE, 48, get_address_state_ioctl_t )
 #endif
 };
 

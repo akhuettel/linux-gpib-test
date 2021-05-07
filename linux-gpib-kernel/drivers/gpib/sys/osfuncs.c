@@ -68,12 +68,9 @@ static int select_device_path_ioctl( gpib_board_config_t *config, unsigned long 
 static int event_ioctl( gpib_board_t *board, unsigned long arg );
 static int request_system_control_ioctl( gpib_board_t *board, unsigned long arg );
 static int t1_delay_ioctl( gpib_board_t *board, unsigned long arg );
-#if (GPIB_CONFIG_DEVICE==1)
 static int release_dac_holdoff_ioctl( gpib_board_t *board, unsigned long arg );
 static int set_address_mode_ioctl( gpib_board_t *board, unsigned long arg );
 static int get_address_state_ioctl( gpib_board_t *board, unsigned long arg );
-#endif
-
 
 static int cleanup_open_devices( gpib_file_private_t *file_priv, gpib_board_t *board );
 
@@ -458,7 +455,6 @@ long ibioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 			mutex_unlock(&board->big_gpib_mutex);
 			return write_ioctl( file_priv, board, arg );
 			break;
-#if (GPIB_CONFIG_DEVICE==1)
 		case IBRELEASE_DAC_HOLDOFF:
 			retval = release_dac_holdoff_ioctl( board, arg );
 			goto done;
@@ -471,7 +467,6 @@ long ibioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 			retval = get_address_state_ioctl( board, arg );
 			goto done;
 			break;
-#endif
 		default:
 			retval = -ENOTTY;
 			goto done;
@@ -1610,7 +1605,6 @@ static int t1_delay_ioctl( gpib_board_t *board, unsigned long arg )
 	return 0;
 }
 
-#if (GPIB_CONFIG_DEVICE==1)
 static int release_dac_holdoff_ioctl( gpib_board_t *board, unsigned long arg )
 {
 	int do_accept;
@@ -1668,4 +1662,3 @@ static int get_address_state_ioctl( gpib_board_t *board, unsigned long arg )
 
 	return 0;
 }
-#endif
