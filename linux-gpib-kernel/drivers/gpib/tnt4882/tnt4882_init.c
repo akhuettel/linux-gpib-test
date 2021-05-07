@@ -153,7 +153,6 @@ int tnt4882_parallel_poll(gpib_board_t *board, uint8_t *result)
 void tnt4882_parallel_poll_configure(gpib_board_t *board, uint8_t config )
 {
 	tnt4882_private_t *priv = board->private_data;
-#if (GPIB_CONFIG_TNT5004==1)
 	if(priv->nec7210_priv.type == TNT5004) {
 		write_byte(&priv->nec7210_priv, AUXRI | 0x4, AUXMR);		/* configure locally */
 		if (config) {
@@ -164,8 +163,7 @@ void tnt4882_parallel_poll_configure(gpib_board_t *board, uint8_t config )
 		}
 	}
 	else
-#endif
-	nec7210_parallel_poll_configure( board, &priv->nec7210_priv, config );
+		nec7210_parallel_poll_configure( board, &priv->nec7210_priv, config );
 }
 void tnt4882_parallel_poll_response(gpib_board_t *board, int ist )
 {
@@ -638,11 +636,7 @@ void tnt4882_init( tnt4882_private_t *tnt_priv, const gpib_board_t *board )
 	tnt_writeb( tnt_priv,AUX_7210, SWAPPED_AUXCR);
 	udelay(1);
 	// turn on one-chip mode
-#if (GPIB_CONFIG_TNT5004==1)
  	if(( nec_priv->type == TNT4882 ) || ( nec_priv->type == TNT5004 ))
-#else
-	if( nec_priv->type == TNT4882 )
-#endif
 		tnt_writeb(tnt_priv, NODMA | TNT_ONE_CHIP_BIT, HSSEL);
 	else
 		tnt_writeb(tnt_priv, NODMA, HSSEL);
@@ -728,9 +722,7 @@ int ni_pci_attach(gpib_board_t *board, const gpib_board_config_t *config)
 		case PCI_DEVICE_ID_NI_PMCGPIB:
 		case PCI_DEVICE_ID_NI_PCIEGPIB:
 		case PCI_DEVICE_ID_NI_PCIE2GPIB:
-#if (GPIB_CONFIG_TNT5004==1)
 		case PCI_DEVICE_ID_MC_PCI488: 		// support for Measurement Computing PCI-488
-#endif
 		case PCI_DEVICE_ID_CEC_NI_GPIB:
 			found_board = 1;
 			break;
@@ -764,7 +756,6 @@ int ni_pci_attach(gpib_board_t *board, const gpib_board_config_t *config)
 	tnt_priv->irq = mite_irq(tnt_priv->mite);
 	printk( "tnt4882: irq %i\n", tnt_priv->irq );
 
-#if (GPIB_CONFIG_TNT5004==1)
 	// TNT5004 detection
 	switch(tnt_readb( tnt_priv, CSR ) & 0xf0) {
 	case 0x30:
@@ -776,9 +767,7 @@ int ni_pci_attach(gpib_board_t *board, const gpib_board_config_t *config)
 		printk("tnt4882: TNT5004 chipset detected\n");
 		break;
 	}
-#endif
-
-	 	tnt4882_init( tnt_priv, board );
+	tnt4882_init( tnt_priv, board );
 
 	return 0;
 }
@@ -949,9 +938,7 @@ static const struct pci_device_id tnt4882_pci_table[] =
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_PMCGPIB)},
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_PCIEGPIB)},
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_NI_PCIE2GPIB)},
-#if (GPIB_CONFIG_TNT5004==1)
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_MC_PCI488)},	// support for Measurement Computing PCI-488
-#endif
 	{PCI_DEVICE(PCI_VENDOR_ID_NATINST, PCI_DEVICE_ID_CEC_NI_GPIB)},
 	{ 0 }
 };

@@ -162,11 +162,7 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 #else
 	nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ENDIE | HR_DECIE );
 #endif
-#if (GPIB_CONFIG_TNT5004==1)
 	if(( nec_priv->type != TNT4882 ) && ( nec_priv->type != TNT5004 ))
-#else
-	if( nec_priv->type != TNT4882 )
-#endif
 #if (GPIB_CONFIG_DEVICE==1)
 		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_DMAI | HR_ACIE);
 	else

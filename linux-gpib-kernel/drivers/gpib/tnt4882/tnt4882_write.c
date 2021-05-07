@@ -169,11 +169,7 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 #else
 	nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ERRIE | HR_DECIE );
 #endif
-#if (GPIB_CONFIG_TNT5004==1)
 	if(( nec_priv->type != TNT4882 ) && ( nec_priv->type != TNT5004 ))
-#else
-	if( nec_priv->type != TNT4882 )
-#endif
 #if (GPIB_CONFIG_DEVICE==1)
 		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_DMAO | HR_ACIE );
 	else
@@ -199,11 +195,7 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	if( send_eoi )
 	{
 		bits |= TNT_CCEN;
-#if (GPIB_CONFIG_TNT5004==1)
 		if((nec_priv->type != TNT4882 ) && (nec_priv->type != TNT5004 ))
-#else
-		if(nec_priv->type != TNT4882 )
-#endif
 			tnt_writeb( tnt_priv, AUX_SEOI, CCR );
 	}
 	if( send_commands )
