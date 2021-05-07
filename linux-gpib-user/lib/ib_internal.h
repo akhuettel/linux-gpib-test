@@ -99,7 +99,6 @@ int is_system_controller( const ibBoard_t *board );
 int is_cic( const ibBoard_t *board );
 int assert_ifc( ibBoard_t *board, unsigned int usec );
 int request_system_control( ibBoard_t *board, int request_control );
-int local_parallel_poll_mode( ibConf_t *conf, int do_accept );
 int release_dac_holdoff( ibBoard_t *board, int do_accept );
 int set_address_mode( ibBoard_t *board, int address_mode, int sad );
 int get_address_state( ibBoard_t *board, unsigned int *secondary, int *is_minor );
