@@ -232,7 +232,8 @@ void tnt4882_return_to_local( gpib_board_t *board )
 	tnt4882_private_t *priv = board->private_data;
 	nec7210_return_to_local( board, &priv->nec7210_priv );
 }
-#if (GPIB_CONFIG_DEVICE==1)
+
+
 /*
  * Puts the TNT4882 either with set_local = 0 into 7210 mode (remote configuration) or
  * with set_local = 1 into true PP2 mode (local configuration only). Use set_local = 1
@@ -293,7 +294,6 @@ void tnt4882_get_address_state( gpib_board_t *board, unsigned int *secondary, in
 	tnt4882_private_t *priv = board->private_data;
 	nec7210_get_address_state( board, &priv->nec7210_priv, secondary, is_minor );
 }
-#endif
 
 gpib_interface_t ni_pci_interface =
 {
@@ -313,9 +313,7 @@ gpib_interface_t ni_pci_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
-#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -324,11 +322,9 @@ gpib_interface_t ni_pci_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: tnt4882_release_dac_holdoff,
 	set_address_mode: tnt4882_set_address_mode,
 	get_address_state: tnt4882_get_address_state,
-#endif
 };
 
 gpib_interface_t ni_pci_accel_interface =
@@ -349,9 +345,7 @@ gpib_interface_t ni_pci_accel_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
-#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -360,11 +354,9 @@ gpib_interface_t ni_pci_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: tnt4882_release_dac_holdoff,
 	set_address_mode: tnt4882_set_address_mode,
 	get_address_state: tnt4882_get_address_state,
-#endif
 };
 
 gpib_interface_t ni_isa_interface =
@@ -385,9 +377,7 @@ gpib_interface_t ni_isa_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
-#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -396,11 +386,9 @@ gpib_interface_t ni_isa_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: tnt4882_release_dac_holdoff,
 	set_address_mode: tnt4882_set_address_mode,
 	get_address_state: tnt4882_get_address_state,
-#endif
 };
 
 gpib_interface_t ni_nat4882_isa_interface =
@@ -421,9 +409,7 @@ gpib_interface_t ni_nat4882_isa_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
-#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -432,11 +418,9 @@ gpib_interface_t ni_nat4882_isa_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: tnt4882_release_dac_holdoff,
 	set_address_mode: tnt4882_set_address_mode,
 	get_address_state: tnt4882_get_address_state,
-#endif
 };
 
 gpib_interface_t ni_nec_isa_interface =
@@ -457,9 +441,7 @@ gpib_interface_t ni_nec_isa_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
-#endif
 	line_status: NULL,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -468,11 +450,9 @@ gpib_interface_t ni_nec_isa_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: tnt4882_release_dac_holdoff,
 	set_address_mode: tnt4882_set_address_mode,
 	get_address_state: tnt4882_get_address_state,
-#endif
 };
 
 gpib_interface_t ni_isa_accel_interface =
@@ -493,9 +473,7 @@ gpib_interface_t ni_isa_accel_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
-#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -504,11 +482,9 @@ gpib_interface_t ni_isa_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: tnt4882_release_dac_holdoff,
 	set_address_mode: tnt4882_set_address_mode,
 	get_address_state: tnt4882_get_address_state,
-#endif
 };
 
 gpib_interface_t ni_nat4882_isa_accel_interface =
@@ -529,9 +505,7 @@ gpib_interface_t ni_nat4882_isa_accel_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
-#endif
 	line_status: tnt4882_line_status,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -540,11 +514,9 @@ gpib_interface_t ni_nat4882_isa_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: tnt4882_release_dac_holdoff,
 	set_address_mode: tnt4882_set_address_mode,
 	get_address_state: tnt4882_get_address_state,
-#endif
 };
 
 gpib_interface_t ni_nec_isa_accel_interface =
@@ -565,9 +537,7 @@ gpib_interface_t ni_nec_isa_accel_interface =
 	parallel_poll: tnt4882_parallel_poll,
 	parallel_poll_configure: tnt4882_parallel_poll_configure,
 	parallel_poll_response: tnt4882_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: tnt4882_local_parallel_poll_mode,
-#endif
 	line_status: NULL,
 	update_status: tnt4882_update_status,
 	primary_address: tnt4882_primary_address,
@@ -576,11 +546,9 @@ gpib_interface_t ni_nec_isa_accel_interface =
 	serial_poll_status: tnt4882_serial_poll_status,
 	t1_delay: tnt4882_t1_delay,
 	return_to_local: tnt4882_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: tnt4882_release_dac_holdoff,
 	set_address_mode: tnt4882_set_address_mode,
 	get_address_state: tnt4882_get_address_state,
-#endif
 };
 
 void tnt4882_board_reset( tnt4882_private_t *tnt_priv, gpib_board_t *board )
