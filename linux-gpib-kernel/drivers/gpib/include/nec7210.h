@@ -53,10 +53,8 @@ struct nec7210_private_struct
 	enum listener_function_state listener_state;
 	void *private;
 	unsigned srq_pending : 1;
-#if (GPIB_CONFIG_DEVICE==1)
 	unsigned is_minor_address : 1;	// have been addressed on minor address (represents bit 0 of ADSR)
 	unsigned int command;			// keeps the last command or secondary address from CPTR
-#endif
 };
 
 static inline void init_nec7210_private( nec7210_private_t *priv )
@@ -88,9 +86,7 @@ enum
 	BUS_ERROR_BN,	// output error has occurred
 	RFD_HOLDOFF_BN,	// rfd holdoff in effect
 	DEV_CLEAR_BN,	// device clear received
-#if (GPIB_CONFIG_DEVICE==1)
 	ADSC_BN,	// addressing changed (either addressed or unaddressed or major/minor change)
-#endif
 };
 
 // interface functions
@@ -127,14 +123,12 @@ uint8_t nec7210_serial_poll_status( gpib_board_t *board,
 unsigned int nec7210_t1_delay( gpib_board_t *board,
 	nec7210_private_t *priv, unsigned int nano_sec );
 void nec7210_return_to_local( const gpib_board_t *board, nec7210_private_t *priv );
-#if (GPIB_CONFIG_DEVICE==1)
 void nec7210_local_parallel_poll_mode(gpib_board_t *board, nec7210_private_t *priv, int set_local);
 void nec7210_release_dac_holdoff( gpib_board_t *board, nec7210_private_t *priv, int do_accept );
 void nec7210_set_address_mode( gpib_board_t *board, nec7210_private_t *priv,
 		int address_mode, int sad );
 void nec7210_get_address_state( gpib_board_t *board, nec7210_private_t *priv,
 		unsigned int *secondary, int *is_minor );
-#endif
 
 // utility functions
 void nec7210_board_reset( nec7210_private_t *priv, const gpib_board_t *board );

@@ -134,7 +134,6 @@ typedef struct
 	char device_path[0x1000];
 } select_device_path_ioctl_t;
 
-#if (GPIB_CONFIG_DEVICE==1)
 typedef struct
 {
 	unsigned int secondary;
@@ -146,7 +145,6 @@ typedef struct
 	int address_mode;
 	int sad;
 } set_address_mode_ioctl_t;
-#endif
 
 typedef short event_ioctl_t;
 typedef int rsc_ioctl_t;
@@ -211,7 +209,6 @@ enum gpib_ioctl
  	IBRELEASE_DAC_HOLDOFF = _IOW( GPIB_CODE, 46, int ),
  	IBSET_ADDRESS_MODE = _IOW( GPIB_CODE, 47, set_address_mode_ioctl_t ),
  	IBGET_ADDRESS_STATE = _IOR( GPIB_CODE, 48, get_address_state_ioctl_t )
-#endif
 };
 
 #endif	/* _GPIB_IOCTL_H */

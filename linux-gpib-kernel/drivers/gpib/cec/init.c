@@ -134,7 +134,6 @@ void cec_return_to_local( gpib_board_t *board )
 	cec_private_t *priv = board->private_data;
 	nec7210_return_to_local( board, &priv->nec7210_priv );
 }
-#if (GPIB_CONFIG_DEVICE==1)
 void cec_local_parallel_poll_mode( gpib_board_t *board, int set_local )
 {
  	cec_private_t *priv = board->private_data;
@@ -155,7 +154,7 @@ void cec_get_address_state( gpib_board_t *board, unsigned int *secondary, int *i
  	cec_private_t *priv = board->private_data;
  	nec7210_get_address_state( board, &priv->nec7210_priv, secondary, is_minor );
 }
-#endif
+
 
 gpib_interface_t cec_pci_interface =
 {
@@ -175,9 +174,7 @@ gpib_interface_t cec_pci_interface =
 	parallel_poll: cec_parallel_poll,
 	parallel_poll_configure: cec_parallel_poll_configure,
 	parallel_poll_response: cec_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: cec_local_parallel_poll_mode,
-#endif
 	line_status: NULL,	//XXX
 	update_status: cec_update_status,
 	primary_address: cec_primary_address,
@@ -186,11 +183,9 @@ gpib_interface_t cec_pci_interface =
 	serial_poll_status: cec_serial_poll_status,
 	t1_delay: cec_t1_delay,
 	return_to_local: cec_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: cec_release_dac_holdoff,
 	set_address_mode: cec_set_address_mode,
 	get_address_state: cec_get_address_state,
-#endif
 };
 
 int cec_allocate_private(gpib_board_t *board)

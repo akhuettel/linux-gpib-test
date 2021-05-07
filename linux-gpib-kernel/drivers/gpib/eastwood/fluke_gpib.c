@@ -157,7 +157,6 @@ void fluke_return_to_local( gpib_board_t *board )
 	udelay(1);
 	write_byte(nec_priv, AUX_RTL, AUXMR);
 }
-#if (GPIB_CONFIG_DEVICE==1)
 void fluke_local_parallel_poll_mode( gpib_board_t *board, int set_local )
 {
 	fluke_private_t *priv = board->private_data;
@@ -178,7 +177,6 @@ void fluke_get_address_state( gpib_board_t *board, unsigned int *secondary, int 
 	fluke_private_t *priv = board->private_data;
 	nec7210_get_address_state( board, &priv->nec7210_priv, secondary, is_minor );
 }
-#endif
 int fluke_line_status( const gpib_board_t *board )
 {
 	int status = ValidALL;
@@ -737,9 +735,7 @@ gpib_interface_t fluke_unaccel_interface =
 	parallel_poll: fluke_parallel_poll,
 	parallel_poll_configure: fluke_parallel_poll_configure,
 	parallel_poll_response: fluke_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: fluke_local_parallel_poll_mode,
-#endif
 	line_status: fluke_line_status,
 	update_status: fluke_update_status,
 	primary_address: fluke_primary_address,
@@ -748,11 +744,9 @@ gpib_interface_t fluke_unaccel_interface =
 	serial_poll_status: fluke_serial_poll_status,
 	t1_delay: fluke_t1_delay,
 	return_to_local: fluke_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: fluke_release_dac_holdoff,
 	set_address_mode: fluke_set_address_mode,
 	get_address_state: fluke_get_address_state,
-#endif
 };
 
 /* fluke_hybrid uses dma for writes but not for reads.  Added
@@ -778,9 +772,7 @@ gpib_interface_t fluke_hybrid_interface =
 	parallel_poll: fluke_parallel_poll,
 	parallel_poll_configure: fluke_parallel_poll_configure,
 	parallel_poll_response: fluke_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: fluke_local_parallel_poll_mode,
-#endif
 	line_status: fluke_line_status,
 	update_status: fluke_update_status,
 	primary_address: fluke_primary_address,
@@ -789,11 +781,9 @@ gpib_interface_t fluke_hybrid_interface =
 	serial_poll_status: fluke_serial_poll_status,
 	t1_delay: fluke_t1_delay,
 	return_to_local: fluke_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: fluke_release_dac_holdoff,
 	set_address_mode: fluke_set_address_mode,
 	get_address_state: fluke_get_address_state,
-#endif
 };
 
 gpib_interface_t fluke_interface =
@@ -814,9 +804,7 @@ gpib_interface_t fluke_interface =
 	parallel_poll: fluke_parallel_poll,
 	parallel_poll_configure: fluke_parallel_poll_configure,
 	parallel_poll_response: fluke_parallel_poll_response,
-#if (GPIB_CONFIG_DEVICE==1)
 	local_parallel_poll_mode: fluke_local_parallel_poll_mode,
-#endif
 	line_status: fluke_line_status,
 	update_status: fluke_update_status,
 	primary_address: fluke_primary_address,
@@ -825,11 +813,9 @@ gpib_interface_t fluke_interface =
 	serial_poll_status: fluke_serial_poll_status,
 	t1_delay: fluke_t1_delay,
 	return_to_local: fluke_return_to_local,
-#if (GPIB_CONFIG_DEVICE==1)
 	release_dac_holdoff: fluke_release_dac_holdoff,
 	set_address_mode: fluke_set_address_mode,
 	get_address_state: fluke_get_address_state,
-#endif
 };
 
 irqreturn_t fluke_gpib_internal_interrupt(gpib_board_t *board)

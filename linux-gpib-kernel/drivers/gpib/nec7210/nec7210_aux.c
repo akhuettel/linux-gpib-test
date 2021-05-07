@@ -157,7 +157,6 @@ void nec7210_return_to_local( const gpib_board_t *board, nec7210_private_t *priv
 	write_byte( priv, AUX_RTL, AUXMR );
 }
 
-#if (GPIB_CONFIG_DEVICE==1)
 void nec7210_local_parallel_poll_mode( gpib_board_t *board, nec7210_private_t *priv, int set_local )
 {
 	// dummy implementation (not needed, intended for TNT4882 & friends only)
@@ -233,9 +232,6 @@ void nec7210_get_address_state( gpib_board_t *board, nec7210_private_t *priv,
 	*secondary = priv->command & 0x1f;
 	*is_minor = priv->is_minor_address;
 }
-#endif
-
-
 
 EXPORT_SYMBOL( nec7210_t1_delay );
 EXPORT_SYMBOL( nec7210_request_system_control );
@@ -245,9 +241,7 @@ EXPORT_SYMBOL( nec7210_interface_clear );
 EXPORT_SYMBOL( nec7210_remote_enable );
 EXPORT_SYMBOL( nec7210_release_rfd_holdoff );
 EXPORT_SYMBOL( nec7210_return_to_local );
-#if (GPIB_CONFIG_DEVICE==1)
 EXPORT_SYMBOL( nec7210_local_parallel_poll_mode );
 EXPORT_SYMBOL( nec7210_release_dac_holdoff );
 EXPORT_SYMBOL( nec7210_set_address_mode );
 EXPORT_SYMBOL( nec7210_get_address_state );
-#endif

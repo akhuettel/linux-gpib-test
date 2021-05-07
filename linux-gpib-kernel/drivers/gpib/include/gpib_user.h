@@ -43,11 +43,8 @@ enum ibsta_bit_numbers
 	SRQI_NUM = 12,
 	END_NUM = 13,
 	TIMO_NUM = 14,
-	ERR_NUM = 15
-#if (GPIB_CONFIG_DEVICE==1)
- 	,
+	ERR_NUM = 15,
  	APT_NUM = 16
-#endif
 };
 
 /* IBSTA status bits (returned by all functions) */
@@ -68,18 +65,12 @@ enum ibsta_bits
 	SRQI = ( 1 << SRQI_NUM ),	/* SRQ is asserted */
 	END = ( 1 << END_NUM ),	/* EOI or EOS encountered */
 	TIMO = ( 1 << TIMO_NUM ),	/* Time limit on I/O or wait function exceeded */
-	ERR = ( 1 << ERR_NUM )	/* Function call terminated on error */
-#if (GPIB_CONFIG_DEVICE==1)
-	,
+	ERR = ( 1 << ERR_NUM ),  	/* Function call terminated on error */
  	APT = ( 1 << APT_NUM )		/* secondary GPIB address has been received */
-#endif
 };
 
 static const int device_status_mask = ERR | TIMO | END | CMPL | RQS;
-static const int board_status_mask = ERR | TIMO | END | CMPL | SPOLL |
-#if (GPIB_CONFIG_DEVICE==1)
- 		APT |
-#endif
+static const int board_status_mask = ERR | TIMO | END | CMPL | SPOLL | APT |
 		EVENT | LOK | REM | CIC | ATN | TACS | LACS | DTAS | DCAS | SRQI;
 
 /* IBERR error codes */
