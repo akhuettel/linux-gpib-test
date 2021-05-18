@@ -152,11 +152,9 @@ static void update_talker_state(nec7210_private_t *priv, unsigned address_status
 	{
 		priv->talker_state = talker_idle;
 	}
-#if (GPIB_CONFIG_DEVICE==1)
 	if((address_status_bits & HR_TPAS)) {
 		priv->talker_state = talker_addressed;
 	}
-#endif
 }
 
 static void update_listener_state(nec7210_private_t *priv, unsigned address_status_bits)
@@ -174,11 +172,9 @@ static void update_listener_state(nec7210_private_t *priv, unsigned address_stat
 	{
 		priv->listener_state = listener_idle;
 	}
-#if (GPIB_CONFIG_DEVICE==1)
 	if((address_status_bits & HR_LPAS)) {
 		priv->listener_state = listener_addressed;
 	}
-#endif
 }
 
 unsigned int update_status_nolock( gpib_board_t *board, nec7210_private_t *priv )
@@ -197,13 +193,13 @@ unsigned int update_status_nolock( gpib_board_t *board, nec7210_private_t *priv 
 		clear_bit(CIC_NUM, &board->status);
 	// check for talker/listener addressed
 	update_talker_state(priv, address_status_bits);
-#if (GPIB_CONFIG_DEVICE==1)
+        /* Start HPDRIVE extension */
 	if((address_status_bits & HR_MJMN) && (board->sad == 31)) {
 		// actually untalk for major address
 		priv->talker_state = talker_idle;
  //		write_byte(priv, 0xb, AUXMR);	// force local untalk entering TIDS, actually an ASIC feature only
-	}
-#endif
+	} /* End HPDRIVE extension */
+
 	if(priv->talker_state == talker_active || priv->talker_state == talker_addressed)
 	{
 		set_bit(TACS_NUM, &board->status);
@@ -266,7 +262,7 @@ void nec7210_set_handshake_mode( gpib_board_t *board, nec7210_private_t *priv, i
 	unsigned long flags;
 
 	mode &= HR_HANDSHAKE_MASK;
-	
+
 	spin_lock_irqsave( &board->spinlock, flags );
 	if((priv->auxa_bits & HR_HANDSHAKE_MASK) != mode)
 	{

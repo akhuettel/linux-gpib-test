@@ -620,10 +620,8 @@ void tnt4882_init( tnt4882_private_t *tnt_priv, const gpib_board_t *board )
 	// enable interrupt
 	tnt_writeb( tnt_priv, 0x1, INTRT );
 
-#if (GPIB_CONFIG_DEVICE==1)
 	tnt_priv->auxi_bits = AUXRI;
 	write_byte( &tnt_priv->nec7210_priv, tnt_priv->auxi_bits, AUXMR );
-#endif
 
 	// force immediate holdoff
 	write_byte( &tnt_priv->nec7210_priv, AUX_HLDI, AUXMR );

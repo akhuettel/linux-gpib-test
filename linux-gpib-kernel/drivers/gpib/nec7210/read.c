@@ -25,7 +25,7 @@ static int pio_read( gpib_board_t *board, nec7210_private_t *priv, uint8_t *buff
 {
 	ssize_t retval = 0;
 
-	*bytes_read = 0;	
+	*bytes_read = 0;
 	*end = 0;
 
 	while( *bytes_read < length )
@@ -186,25 +186,25 @@ int nec7210_read(gpib_board_t *board, nec7210_private_t *priv, uint8_t *buffer,
 	size_t length, int *end, size_t *bytes_read)
 {
 	ssize_t retval = 0;
-	
+
 	*end = 0;
 	*bytes_read = 0;
-	
+
 	if( length == 0 ) return 0;
 
 	smp_mb__before_atomic();
 	clear_bit( DEV_CLEAR_BN, &priv->state ); // XXX wrong
-#if (GPIB_CONFIG_DEVICE==1)
+	/* Start HPDRIVE extension */
 	clear_bit( TACS_NUM, &board->status );
 	clear_bit( ATN_NUM, &board->status );
 	clear_bit( ADSC_BN, &priv->state );
-#endif
+	/* End HPDRIVE extension */
 	smp_mb__after_atomic();
 
 	nec7210_release_rfd_holdoff( board, priv );
 
 	retval = pio_read(board, priv, buffer, length, end, bytes_read);
-	
+
 	return retval;
 }
 

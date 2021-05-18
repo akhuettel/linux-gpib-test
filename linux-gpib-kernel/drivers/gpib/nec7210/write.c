@@ -79,11 +79,7 @@ static int pio_write_wait(gpib_board_t *board, nec7210_private_t *priv,
 }
 
 static int pio_write(gpib_board_t *board, nec7210_private_t *priv,
-#if (GPIB_CONFIG_DEVICE==1)
 	uint8_t *buffer, size_t length, size_t *bytes_written, int send_eoi)
-#else
-	uint8_t *buffer, size_t length, size_t *bytes_written)
-#endif
 {
 	size_t last_count = 0;
 	ssize_t retval = 0;
@@ -112,14 +108,10 @@ static int pio_write(gpib_board_t *board, nec7210_private_t *priv,
 			bus_error_count++;
 			if(bus_error_count > max_bus_errors) return retval;
 			else continue;
-#if (GPIB_CONFIG_DEVICE==1)
 		}else if( retval < 0 ) goto done;
 
 		if (send_eoi && (*bytes_written == (length - 1)))
 			write_byte(priv, AUX_SEOI, AUXMR);
-#else
-		}else if( retval < 0 ) return retval;
-#endif
 
 		spin_lock_irqsave(&board->spinlock, flags);
 		clear_bit(BUS_ERROR_BN, &priv->state);
@@ -129,13 +121,12 @@ static int pio_write(gpib_board_t *board, nec7210_private_t *priv,
 		spin_unlock_irqrestore(&board->spinlock, flags);
 	}
 	retval = pio_write_wait(board, priv, 1, 1, priv->type == NEC7210);
-#if (GPIB_CONFIG_DEVICE==1)
+
 done:
 	if (retval < 0) {
 		if ((retval == -EIO) || test_and_clear_bit(BUS_ERROR_BN, &priv->state))
 			*bytes_written = last_count;
 	}
-#endif
 	return retval;
 }
 #if 0
@@ -223,10 +214,10 @@ int nec7210_write(gpib_board_t *board, nec7210_private_t *priv, uint8_t *buffer,
 {
 	int retval = 0;
 
-#if (GPIB_CONFIG_DEVICE==1)
+
 	unsigned int adr1_bits = 0;
 	/* we need to temporarily disable the minor address in order
-	 to see the untalk */
+	 to see the untalk  start HPDRIVE extension*/
 	adr1_bits = read_byte(priv, ADR1);
 	if ((adr1_bits & (HR_DT | HR_DL | ADDRESS_MASK)) == (HR_DL | 0x1f))
 		write_byte(priv, HR_ARS | HR_DT | HR_DL, ADR);
@@ -234,71 +225,18 @@ int nec7210_write(gpib_board_t *board, nec7210_private_t *priv, uint8_t *buffer,
 	clear_bit(LACS_NUM, &board->status);
 	clear_bit(ATN_NUM, &board->status);
 	clear_bit(ADSC_BN, &priv->state);
-	smp_mb__after_atomic();
-#endif
-
-	*bytes_written = 0;
-
-	smp_mb__before_atomic();
+        /*  end HPDRIVE extension */
 	clear_bit( DEV_CLEAR_BN, &priv->state ); //XXX
 	smp_mb__after_atomic();
 
-#if (GPIB_CONFIG_DEVICE==1)
+	*bytes_written = 0;
+
 	if (length == 0) return 0;
 	retval = pio_write(board, priv, buffer, length, bytes_written, send_eoi);
-	/* restore minor addressing */
+	/* restore minor addressing HPDRIVE extension */
 	if ((adr1_bits & (HR_DT | HR_DL | ADDRESS_MASK)) == (HR_DL | 0x1f))
 		write_byte(priv, HR_ARS | HR_DL | 0x1f, ADR);
-#else
-	if(send_eoi)
-	{
-		length-- ; /* save the last byte for sending EOI */
-	}
 
-	if(length > 0)
-	{
-		if(0 /*priv->dma_channel*/)
-		{	// isa dma transfer
-/* dma writes are unreliable since they can't recover from bus errors
- * (which happen when ATN is asserted in the middle of a write) */
-#if 0
-			retval = dma_write(board, priv, buffer, length);
-			if(retval < 0)
-				return retval;
-			else count += retval;
-#endif
-		}else
-		{	// PIO transfer
-			size_t num_bytes;
-			retval = pio_write(board, priv, buffer, length, &num_bytes);
-			*bytes_written += num_bytes;
-			if(retval < 0)
-			{
-				return retval;
-			}
-		}
-	}
-	if(send_eoi)
-	{
-		size_t num_bytes;
-
-		/* We need to wait to make sure we will immediately be able to write the data byte
-		* into the chip before sending the associated AUX_SEOI command.  This is really
-		* only needed for length==1 since otherwise the earlier calls to pio_write
-		* will have dont the wait already.  */
-		retval = pio_write_wait(board, priv, 0, 0, priv->type == NEC7210);
-		if(retval < 0) return retval;
-		/*send EOI */
-		write_byte(priv, AUX_SEOI, AUXMR);
-
-		retval = pio_write(board, priv, &buffer[*bytes_written], 1, &num_bytes);
-		*bytes_written += num_bytes;
-		if(retval < 0)
-		{
-			return retval;
-		}
-	}
-#endif
 	return retval;
 }
 

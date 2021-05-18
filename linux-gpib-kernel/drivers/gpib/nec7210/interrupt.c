@@ -59,7 +59,7 @@ irqreturn_t nec7210_interrupt_have_status( gpib_board_t *board,
 #endif
 	int retval = IRQ_NONE;
 
-#if (GPIB_CONFIG_DEVICE==1)
+        /* Start HPDRIVE extension */
 	unsigned int adsr;
 	adsr = read_byte(priv, ADSR);
 
@@ -82,8 +82,8 @@ irqreturn_t nec7210_interrupt_have_status( gpib_board_t *board,
 	if(status2 & HR_ADSC) {
 		set_bit( ADSC_BN, &priv->state);
 	}
-#endif
-	
+        /* End HPDRIVE extension */
+
 	smp_mb__before_atomic();
 
 	// record service request in status

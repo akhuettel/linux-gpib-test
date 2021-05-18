@@ -46,13 +46,7 @@ static int fifo_xfer_done( tnt4882_private_t *tnt_priv )
 	int retval;
 
 	status1 = tnt_readb( tnt_priv, STS1 );
-
-#if (GPIB_CONFIG_DEVICE==1)
 	retval = status1 & ( S_DONE );	// checking S_HALT will lead to early termination
-#else
-	retval = status1 & ( S_DONE | S_HALT );
-#endif
-
 	return retval;
 }
 
@@ -61,46 +55,6 @@ static int drain_fifo_words(tnt4882_private_t *tnt_priv, uint8_t *buffer, int nu
 	int count = 0;
 	nec7210_private_t *nec_priv = &tnt_priv->nec7210_priv;
 
-#if (GPIB_CONFIG_DEVICE==1)
-	short word;
-	int isr3, i;
-
-	// alternative method to drain FIFO as suggested by NI (uses minimum status checks)
-	while (fifo_word_available( tnt_priv ) && ((count + 1) < num_bytes)) {
-		isr3 = tnt_readb( tnt_priv, ISR3 );
-		switch (isr3 & 0x4c) {
-		case 0x04:	/* NEF */
-		case 0x44:	/* NEF|INTSRC2 */
-					/* FIFO full read 16 words */
-					for (i=0; i<16; i++) {
-						word = tnt_priv->io_readw( nec_priv->iobase + FIFOB );
-						if ((count + 1) < num_bytes) {
-							buffer[ count++ ] = word & 0xff;
-							buffer[ count++ ] = ( word >> 8 ) & 0xff;
-						}
-					}
-			break;
-		case 0x4c:	/* NFF|INTSRC2|NEF */
-					/* FIFO half full, read 8 words */
-					for (i=0; i<8; i++) {
-						word = tnt_priv->io_readw( nec_priv->iobase + FIFOB );
-						if ((count + 1) < num_bytes) {
-							buffer[ count++ ] = word & 0xff;
-							buffer[ count++ ] = ( word >> 8 ) & 0xff;
-						}
-					}
-			break;
-		case 0x0c:	/* NFF|NEF */
-					/* at least one word in FIFO */
-					word = tnt_priv->io_readw( nec_priv->iobase + FIFOB );
-					if ((count + 1) < num_bytes) {
-						buffer[ count++ ] = word & 0xff;
-						buffer[ count++ ] = ( word >> 8 ) & 0xff;
-					}
-			break;
-		}
-	}
-#else
 	while(fifo_word_available( tnt_priv ) && count + 2 <= num_bytes)
 	{
 		short word;
@@ -109,7 +63,6 @@ static int drain_fifo_words(tnt4882_private_t *tnt_priv, uint8_t *buffer, int nu
 		buffer[ count++ ] = word & 0xff;
 		buffer[ count++ ] = ( word >> 8 ) & 0xff;
 	}
-#endif
 	return count;
 }
 
@@ -151,33 +104,19 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 	*bytes_read = 0;
 	// FIXME: really, DEV_CLEAR_BN should happen elsewhere to prevent race
 	smp_mb__before_atomic();
-	clear_bit(DEV_CLEAR_BN, &nec_priv->state);	
+	clear_bit(DEV_CLEAR_BN, &nec_priv->state);
 	smp_mb__after_atomic();
 
 	imr1_bits = nec_priv->reg_bits[ IMR1 ];
 	imr2_bits = nec_priv->reg_bits[ IMR2 ];
 
-#if (GPIB_CONFIG_DEVICE==1)
 	nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ENDIE | HR_DECIE | HR_APTIE);
-#else
-	nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ENDIE | HR_DECIE );
-#endif
 	if(( nec_priv->type != TNT4882 ) && ( nec_priv->type != TNT5004 ))
-#if (GPIB_CONFIG_DEVICE==1)
 		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_DMAI | HR_ACIE);
 	else
 		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_ACIE );
-#else
-		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_DMAI );
-	else
-		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, 0 );
-#endif
 	imr0_bits = tnt_priv->imr0_bits;
-#if (GPIB_CONFIG_DEVICE==1)
 	tnt_priv->imr0_bits |= TNT_ATNI_BIT;
-#else
-	tnt_priv->imr0_bits &= ~TNT_ATNI_BIT;
-#endif
 	tnt_writeb(tnt_priv, tnt_priv->imr0_bits, IMR0);
 	tnt_writeb( tnt_priv, nec_priv->auxa_bits | HR_HLDA, CCR );
 	bits = TNT_TLCHE | TNT_B_16BIT | TNT_IN | TNT_CCEN;
@@ -192,6 +131,7 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 	tnt_writeb( tnt_priv, ( hw_count >> 24 ) & 0xff, CNT3 );
 
 	tnt4882_release_holdoff(board, tnt_priv);
+
 	tnt_writeb( tnt_priv, GO, CMDR );
 	udelay(1);
 
@@ -201,19 +141,15 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 	spin_unlock_irqrestore( &board->spinlock, flags );
 
 	while(((count + 2) <= length) &&
-//		(test_bit( RECEIVED_END_BN, &nec_priv->state ) == 0) &&
-		(retval == 0) &&
+//HPDRIVE		(test_bit( RECEIVED_END_BN, &nec_priv->state ) == 0) &&
+		(retval == 0) && //HPDRIVE
 		(fifo_xfer_done(tnt_priv) == 0))
 	{
 		// wait until a word is ready
 		if( wait_event_interruptible( board->wait,
 			fifo_word_available( tnt_priv ) ||
 			fifo_xfer_done( tnt_priv ) ||
-#if (GPIB_CONFIG_DEVICE==1)
 			test_bit( RECEIVED_END_BN, &nec_priv->state ) ||
-#else
-//			test_bit( RECEIVED_END_BN, &nec_priv->state ) ||
-#endif
 			test_bit( DEV_CLEAR_BN, &nec_priv->state ) ||
 #if (GPIB_CONFIG_DEVICE==1)
  			test_bit( ADSC_BN, &nec_priv->state ) ||
@@ -238,11 +174,11 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 			retval = -EINTR;
 			break;
 		}
-#if (GPIB_CONFIG_DEVICE==1)
-		if(	test_bit( RECEIVED_END_BN, &nec_priv->state )) {
+		if(	test_bit( RECEIVED_END_BN, &nec_priv->state )) { //HPDRIVE
 			// early termination on EOI
 			if ((count + 2) < length) retval= -EINTR;
 		}
+#if (GPIB_CONFIG_DEVICE==1)
 		if( test_bit( ADSC_BN, &nec_priv->state ) ){
  			if ( !test_bit( LACS_NUM, &board->status ) )	{
  				GPIB_DPRINTK("tnt4882: read interrupted (unlisten)\n");
@@ -269,7 +205,6 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 		if(need_resched())
 			schedule();
 	}
-
 	// wait for last byte
 	if( count < length )
 	{
@@ -279,7 +214,7 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 		spin_unlock_irqrestore( &board->spinlock, flags );
 
 		if( wait_event_interruptible( board->wait,
-				fifo_xfer_done( tnt_priv ) ||
+			fifo_xfer_done( tnt_priv ) ||
 			test_bit( RECEIVED_END_BN, &nec_priv->state ) ||
 			test_bit( DEV_CLEAR_BN, &nec_priv->state ) ||
 			test_bit( TIMO_NUM, &board->status ) ) )
@@ -303,7 +238,6 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 			buffer[ count++ ] = tnt_readb( tnt_priv, FIFOB );
 		}
 	}
-
 	if(count < length)
 		tnt_writeb( tnt_priv, STOP, CMDR );
 	udelay(1);
@@ -334,15 +268,3 @@ int tnt4882_accel_read( gpib_board_t *board, uint8_t *buffer, size_t length, int
 
 	return retval;
 }
-
-
-
-
-
-
-
-
-
-
-
-

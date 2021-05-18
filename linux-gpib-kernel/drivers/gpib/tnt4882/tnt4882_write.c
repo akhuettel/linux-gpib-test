@@ -64,8 +64,8 @@ static int write_wait( gpib_board_t *board, tnt4882_private_t *tnt_priv,
 #if (GPIB_CONFIG_DEVICE==1)
 		(!send_commands &&
  			(test_bit( ADSC_BN, &nec_priv->state ) ||
- 			test_bit( LACS_NUM, &board->status ) ||
- 			test_bit( APT_NUM, &board->status ))) ||
+			 test_bit( LACS_NUM, &board->status )  ||
+			 test_bit( APT_NUM, &board->status ))) ||
 #endif
 		test_bit( TIMO_NUM, &board->status ) ) )
 	{
@@ -120,11 +120,8 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	unsigned int bits, imr0_bits, imr1_bits, imr2_bits;
 	int32_t hw_count;
 	unsigned long flags;
-
-#if (GPIB_CONFIG_DEVICE==1)
  	unsigned int adr1_bits = 0;
-	uint16_t word;
-	int isr3, i;
+#if (GPIB_CONFIG_DEVICE==1)
 
  	if (!send_commands) {
  		// we now should be already addressed as talker - make sure we are in TACS before trying to send data
@@ -140,23 +137,23 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 			}
 		}
  	}
- 	read_byte(nec_priv, ISR2);	// clear status 2
 #endif
- 
+ 	read_byte(nec_priv, ISR2);	// clear status 2 for HPDRIVE
+
  	*bytes_written = 0;
 	// FIXME: really, DEV_CLEAR_BN should happen elsewhere to prevent race
 	smp_mb__before_atomic();
-	clear_bit(DEV_CLEAR_BN, &nec_priv->state);	
+	clear_bit(DEV_CLEAR_BN, &nec_priv->state);
 	smp_mb__after_atomic();
 
 	imr1_bits = nec_priv->reg_bits[ IMR1 ];
 	imr2_bits = nec_priv->reg_bits[ IMR2 ];
 
-#if (GPIB_CONFIG_DEVICE==1)
  	if (send_commands)
  		nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ERRIE | HR_DECIE );
  	else
  		nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ERRIE | HR_DECIE | HR_APTIE);
+	/* HPDRIVE extension */
 	/* if extended dual addressing with minor address 31 is being used (HP Identify hack),
 	 * we need to temporarily disable minor talk address in order to see the untalk on
 	 * the major address during writes */
@@ -166,11 +163,7 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 			write_byte( nec_priv, HR_ARS | HR_DT | HR_DL, ADR);
 		}
 	}
-#else
-	nec7210_set_reg_bits( nec_priv, IMR1, 0xff, HR_ERRIE | HR_DECIE );
-#endif
 	if(( nec_priv->type != TNT4882 ) && ( nec_priv->type != TNT5004 ))
-#if (GPIB_CONFIG_DEVICE==1)
 		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_DMAO | HR_ACIE );
 	else
 		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_ACIE);
@@ -179,13 +172,6 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 		tnt_priv->imr0_bits &= ~TNT_ATNI_BIT;
 	else
 		tnt_priv->imr0_bits |= TNT_ATNI_BIT;
-#else
-		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, HR_DMAO );
-	else
-		nec7210_set_reg_bits( nec_priv, IMR2, 0xff, 0 );
-	imr0_bits = tnt_priv->imr0_bits;
-	tnt_priv->imr0_bits &= ~TNT_ATNI_BIT;
-#endif
 	tnt_writeb(tnt_priv, tnt_priv->imr0_bits, IMR0);
 
 	tnt_writeb( tnt_priv, RESET_FIFO, CMDR );
@@ -209,10 +195,8 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	tnt_writeb( tnt_priv, ( hw_count >> 16 ) & 0xff, CNT2 );
 	tnt_writeb( tnt_priv, ( hw_count >> 24 ) & 0xff, CNT3 );
 
-#if (GPIB_CONFIG_DEVICE==1)
-	nec7210_set_handshake_mode(board, nec_priv, HR_HLDA);		// hold-off on all
-	write_byte(nec_priv, AUX_HLDI, AUXMR);				// hold-off immediate
-#endif
+	nec7210_set_handshake_mode(board, nec_priv, HR_HLDA);		// HPDRIVE hold-off on all
+	write_byte(nec_priv, AUX_HLDI, AUXMR);				// HPDRIVE hold-off immediate
 	tnt_writeb( tnt_priv, GO, CMDR );
 	udelay(1);
 
@@ -220,11 +204,9 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 	tnt_priv->imr3_bits |= HR_DONE;
 	tnt_writeb( tnt_priv, tnt_priv->imr3_bits, IMR3 );
 	spin_unlock_irqrestore( &board->spinlock, flags );
-#if (GPIB_CONFIG_DEVICE==1)
 	if (!send_commands) {
-		clear_bit( ADSC_BN, &nec_priv->state);	// reset ADSC
+		clear_bit( ADSC_BN, &nec_priv->state);	// HPDRIVE reset ADSC
 	}
-#endif
 
 	while( count < length  )
 	{
@@ -234,46 +216,6 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 		if( fifo_xfer_done( tnt_priv ) ) break;
 
 		spin_lock_irqsave( &board->spinlock, flags );
-#if (GPIB_CONFIG_DEVICE==1)
-		// alternative method to fill FIFO as suggested by NI (uses minimum status checks)
-		while ( fifo_space_available( tnt_priv ) && count < length ) {
-			isr3 = tnt_readb( tnt_priv, ISR3 );
-			switch (isr3 & 0x4c) {
-			case 0x08:	/* NFF */
-			case 0x48:	/* NFF|INTSRC2 */
-				/* 16 words in FIFO are empty */
-				for (i=0; i<16; i++) {
-					if (count < length) {
-						word = buffer[ count++ ] & 0xff;
-						if( count < length )
-							word |= ( buffer[ count++ ] << 8 ) & 0xff00;
-						tnt_priv->io_writew( word, nec_priv->iobase + FIFOB );
-					}
-				}
-				break;
-			case 0x4c:	/* NFF|INTSRC2|NEF */
-				/* 8 words in FIFO are empty */
-				for (i=0; i<8; i++) {
-					if (count < length) {
-						word = buffer[ count++ ] & 0xff;
-						if( count < length )
-							word |= ( buffer[ count++ ] << 8 ) & 0xff00;
-						tnt_priv->io_writew( word, nec_priv->iobase + FIFOB );
-					}
-				}
-				break;
-			case 0x0c:	/* NFF|NEF */
-				/* 1 word in FIFO is empty */
-				if (count < length) {
-					word = buffer[ count++ ] & 0xff;
-					if( count < length )
-						word |= ( buffer[ count++ ] << 8 ) & 0xff00;
-					tnt_priv->io_writew( word, nec_priv->iobase + FIFOB );
-				}
-				break;
-			}
-		}
-#else
 		while( fifo_space_available( tnt_priv ) && count < length )
 		{
 			uint16_t word;
@@ -283,7 +225,6 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 				word |= ( buffer[ count++ ] << 8 ) & 0xff00;
 			tnt_priv->io_writew( word, nec_priv->iobase + FIFOB );
 		}
-#endif
 		tnt_priv->imr3_bits |= HR_NFF;
 		tnt_writeb( tnt_priv, tnt_priv->imr3_bits, IMR3 );
 		spin_unlock_irqrestore( &board->spinlock, flags );
@@ -292,7 +233,7 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 			schedule();
 	}
 	// wait last byte has been sent
-#if (GPIB_CONFIG_DEVICE==1)
+        /* Start HPDRIVE extension */
 	if (send_commands) {
 		if(retval == 0)
 			retval = write_wait(board, tnt_priv, 1, send_commands);
@@ -305,10 +246,7 @@ static int generic_write( gpib_board_t *board, uint8_t *buffer, size_t length,
 		if ((retval == 0) && test_bit( TACS_NUM, &board->status ))
 			retval = write_wait(board, tnt_priv, 1, send_commands);
 	}
-#else
-	if(retval == 0)
-		retval = write_wait(board, tnt_priv, 1, send_commands);
-#endif
+	/* End HPDRIVE extension */
 	tnt_writeb( tnt_priv, STOP, CMDR );
 	udelay(1);
 
@@ -332,14 +270,3 @@ int tnt4882_command(gpib_board_t *board, uint8_t *buffer, size_t length, size_t 
 {
 	return generic_write( board, buffer, length, 0, 1, bytes_written);
 }
-
-
-
-
-
-
-
-
-
-
-
